@@ -1,0 +1,14 @@
+# docker-compose.yml
+
+version: '3.8'
+
+services:
+  sqlite:
+    image: alpine:latest
+    container_name: sqlite-container
+    volumes:
+      - ./data:/data
+      - ./migrations:/migrations
+    command: tail -f /dev/null
+    stdin_open: true
+    tty: true

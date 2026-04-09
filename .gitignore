@@ -1,0 +1,42 @@
+/target
+:# Rust
+/target/
+**/*.rs.bk
+*.pdb
+*.sqlite
+*.sqlite3
+*.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Data
+data/
+*.pid
+
+# Docker
+*.pid
+
+# Test artifacts
+*.test
+*.bench
+
+# Generated files
+docs/generated/
