@@ -46,6 +46,7 @@ pub trait PipelineValidationSchemaRepository {
     async fn save_pipeline_validation_schema(&self, schema: &PipelineNewValidateSchema) -> Result<(), IoTBeeError>; 
     async fn delete_pipeline_validation_schema(&self, schema_id: &DataStroreId) -> Result<(), IoTBeeError>;
     async fn update_pipeline_validation_schema(&self, schema_id: &DataStroreId, schema: &PipelineNewValidateSchema) -> Result<(), IoTBeeError>;
+    async fn update_pipeline_validation_schema_name(&self, schema_id: &DataStroreId, new_name: &str) -> Result<(), IoTBeeError>;
     async fn get_pipeline_validation_schema(&self, schema_id: &DataStroreId) -> Result<Option<PipelineNewValidateSchema>, IoTBeeError>;
     async fn list_pipeline_validation_schema(&self) -> Result<Vec<PipelineValidationSchemaModel>, IoTBeeError>;
     // async fn pipeline_validation_schema_exists_name(&self, schema_name: &str) -> Result<bool, IoTBeeError>;

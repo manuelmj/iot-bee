@@ -13,6 +13,7 @@ impl ResponseError for IoTBeeError {
         match self {
             IoTBeeError::PipelinePersistenceError(inner) => match inner {
                 PipelinePersistenceError::ValidationSchemaNameExists { .. } => StatusCode::CONFLICT, // 409
+                PipelinePersistenceError::ValidationSchemaNotFound { .. } => StatusCode::NOT_FOUND, // 404
                 PipelinePersistenceError::Database { .. } => StatusCode::INTERNAL_SERVER_ERROR,      // 500
                 PipelinePersistenceError::SaveFailed { .. }
                 | PipelinePersistenceError::UpdateFailed { .. }
@@ -32,6 +33,9 @@ impl ResponseError for IoTBeeError {
             IoTBeeError::PipelinePersistenceError(inner) => match inner {
                 PipelinePersistenceError::ValidationSchemaNameExists { name } => {
                     format!("Validation schema with name '{}' already exists", name)
+                }
+                PipelinePersistenceError::ValidationSchemaNotFound { schema_id } => {
+                    format!("Validation schema with id '{}' not found", schema_id)
                 }
                 PipelinePersistenceError::Database { .. } => "Internal server error".to_string(),
                 PipelinePersistenceError::SaveFailed { reason }

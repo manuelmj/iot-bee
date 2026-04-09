@@ -26,14 +26,14 @@ impl TryFrom<ValidationSchemaRow> for PipelineNewValidateSchema {
             .with_timezone(&Utc);
 
 
-        let schema = PipelineSchemaModel::new(row.json_schema)?;
-
-        Ok(PipelineNewValidateSchema::existing(
+        let result = PipelineNewValidateSchema::existing(
             row.json_name,
-            schema,
+            row.json_schema,
             created_at,
             updated_at,
-        ))
+        )?;
+
+        Ok(result)
     }
 }
 

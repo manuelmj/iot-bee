@@ -2,12 +2,12 @@
 use crate::domain::error::IoTBeeError;
 
 
-pub struct DataStroreId(i32);
+pub struct DataStroreId(u32);
 impl DataStroreId {
-    pub fn new(id: i32) -> Self {
+    pub fn new(id: u32) -> Self {
         DataStroreId(id)
     }
-    pub fn id(&self) -> i32 {
+    pub fn id(&self) -> u32 {
         self.0
     }
 }
@@ -44,10 +44,12 @@ pub struct PipelineConfig {
 
 pub struct PipelineSchemaModel(String);
 impl PipelineSchemaModel {
-    pub fn new(schema: String) -> Result<Self, IoTBeeError> {
-        Ok(PipelineSchemaModel(schema))
+    pub fn new(schema: impl Into<String>) -> Result<Self, IoTBeeError> {
+        //validar aca las caracteristicas que debe tener el schema, por ejemplo que sea un json valido, o que tenga ciertas propiedades, etc.
+        // devolver el error de validacion de datos. 
+        Ok(PipelineSchemaModel(schema.into()))
     }
-    pub fn schema(&self) -> &String {
+    pub fn schema(&self) -> &str {
         &self.0
     }
 }

@@ -4,6 +4,8 @@ use crate::domain::value_objects::pipelines_values::DataStroreId;
 use crate::domain::value_objects::pipelines_values::{ConnectionType, PipelineDataSourceId, PipilineDataSourceConnection};
 use chrono::{DateTime, Utc}; 
 
+use crate::domain::error::IoTBeeError;
+
 
 //imports relate to validation schemas
 use crate::domain::value_objects::pipelines_values::{PipelineSchemaModel};
@@ -32,7 +34,30 @@ impl PipelineValidationSchemaModel {
     pub fn new(id: DataStroreId, name: String, schema: PipelineSchemaModel, created_at: DateTime<Utc>, updated_at: DateTime<Utc>) -> Self {
         Self { id, name, schema, created_at, updated_at }
     }
+
+    pub fn id(&self) -> u32 {
+        self.id.id()
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn schema(&self) -> &str {
+        &self.schema.schema()
+    }
+
+    pub fn created_at(&self) -> &DateTime<Utc> {
+        &self.created_at
+    }
+
+    pub fn updated_at(&self) -> &DateTime<Utc> {
+        &self.updated_at
+    }
+
 }
+
+
 pub struct PipelineNewValidateSchema{
     pub name: String,
     pub schema: PipelineSchemaModel, 
@@ -42,30 +67,35 @@ pub struct PipelineNewValidateSchema{
 
 impl PipelineNewValidateSchema {
 
-    pub fn existing( name: String, schema: PipelineSchemaModel, created_at: DateTime<Utc>, updated_at: DateTime<Utc>) -> Self {
-        PipelineNewValidateSchema {
-            name,
+    pub fn existing( name: impl Into<String>, schema: impl Into<String>, created_at: DateTime<Utc>, updated_at: DateTime<Utc>) -> 
+    Result<Self, IoTBeeError> {
+        let schema = PipelineSchemaModel::new(schema.into())?;
+        
+        Ok(PipelineNewValidateSchema {
+            name: name.into(),
             schema,
             created_at,
             updated_at,
-        }
+        })
+        
     }
 
-    pub fn new(name: String, schema: PipelineSchemaModel) -> Self {
+    pub fn new(name: impl Into<String>, schema: impl Into<String>) -> Result<Self, IoTBeeError> {
         let now = Utc::now();
-        PipelineNewValidateSchema {
-            name,
+        let schema = PipelineSchemaModel::new(schema.into())?; // Aquí se asume que la creación del PipelineSchemaModel no fallará, pero en un caso real deberías manejar el error adecuadamente.
+        Ok(PipelineNewValidateSchema {
+            name: name.into(),
             schema,
             created_at: now,
             updated_at: now,
-        }
+        })
     }
 
     pub fn name (&self) -> &String {
         &self.name
     }
-    pub fn schema(&self) -> &PipelineSchemaModel {
-        &self.schema
+    pub fn schema(&self) -> &str {
+        &self.schema.schema()
     }
     pub fn created_at(&self) -> &DateTime<Utc> {
         &self.created_at

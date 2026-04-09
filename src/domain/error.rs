@@ -48,6 +48,8 @@ pub enum PipelinePersistenceError {
     ValidationSchemaNameExists { name: String },
     #[error("Invalid data for pipeline validation schema: {reason}")]
     InvalidData { reason: String },
+    #[error("Pipeline validation schema with id {schema_id} not found")]
+    ValidationSchemaNotFound { schema_id: String },
 }
 
 // define a proper domain error for all my sistem 

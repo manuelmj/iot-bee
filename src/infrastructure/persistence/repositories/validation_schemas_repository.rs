@@ -16,7 +16,7 @@ impl PipelineValidationSchemaRepository for PipelineStoreRepository {
         // insertar un nuevo registro en la tabla de validaciones de la base de datos utilizando los datos del schema
         
         let pool = self.data_base_connection().pool();
-        let schema_json = schema.schema().schema(); 
+        let schema_json = schema.schema(); 
 
         let result = sqlx::query(
             r#"
@@ -67,16 +67,15 @@ impl PipelineValidationSchemaRepository for PipelineStoreRepository {
     async fn update_pipeline_validation_schema(&self, schema_id: &DataStroreId, schema: &PipelineNewValidateSchema) -> Result<(), IoTBeeError> {
         // Implementation to update the pipeline validation schema in the database
         
-        let schema_json = schema.schema().schema();
+        let schema_json = schema.schema();
         let pool = self.data_base_connection().pool();
         sqlx::query(
             r#"
             UPDATE validation_schemas 
-            SET json_name = ?, json_schema = ?, updated_at = ?
+            SET json_schema = ?, updated_at = ?
             WHERE id = ?
             "#,
         )
-        .bind(&schema.name())
         .bind(schema_json)
         .bind(&schema.updated_at().to_rfc3339())
         .bind(&schema_id.id())
@@ -128,25 +127,39 @@ impl PipelineValidationSchemaRepository for PipelineStoreRepository {
         
         Ok(result)
     }
-    // async fn pipeline_validation_schema_exists_name(&self, schema_name: &str) -> Result<bool, IoTBeeError> {
-    //     // Implementation to check if a pipeline validation schema name exists in the database
-    //     let pool = self.data_base_connection().pool();
+   
+    async fn update_pipeline_validation_schema_name(&self, schema_id: &DataStroreId, new_name: &str) -> Result<(), IoTBeeError> {
+        // Implementation to update the name of a pipeline validation schema in the database
+        let pool = self.data_base_connection().pool();
+        let result = sqlx::query(
+            r#"
+            UPDATE validation_schemas 
+            SET json_name = ?, updated_at = ?
+            WHERE id = ?
+            "#,
+        )
+        .bind(new_name)
+        .bind(chrono::Utc::now().to_rfc3339())
+        .bind(&schema_id.id())
+        .execute(pool)
+        .await;
+        // .map_err(|e| IoTBeeError::from(
+        //     crate::domain::error::PipelinePersistenceError::UpdateFailed { reason: e.to_string() }
+        // ))?;
+        match result {
+            Ok(_) => Ok(()),
+            Err(SqlxError::Database(db_error)) if db_error.is_unique_violation() => Err(IoTBeeError::from(
+                PipelinePersistenceError::ValidationSchemaNameExists { name: new_name.to_string() }
+            )),
 
-    //     let rows = sqlx::query_as::<_, ValidationSchemaRow>(
-    //         r#"
-    //         SELECT 1
-    //         FROM validation_schemas
-    //         WHERE json_name = ?
-    //         LIMIT 1 
-    //         "#,
-    //     )
-    //     .bind(&schema_name)
-    //     .fetch_optional(pool)
-    //     .await
-    //     .map_err(|e| PipelinePersistenceError::Database { reason: e.to_string() })?;
+            Err(e) => Err(IoTBeeError::from(
+                PipelinePersistenceError::UpdateFailed { reason: e.to_string() }
+                
+            ))
+            
+        }
 
 
-    //     Ok(rows.is_some())
-    // }
+    }
 }
 

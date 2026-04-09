@@ -10,7 +10,7 @@ pub struct ValidationSchemaRow {
 
 #[derive(FromRow)]
 pub struct ValidationSchemaRowWhitId {
-    pub id: i32,
+    pub id: u32,
     pub json_name: String,
     pub json_schema: String,
     pub created_at: String,
