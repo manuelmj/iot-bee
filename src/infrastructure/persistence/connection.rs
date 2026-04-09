@@ -1,5 +1,5 @@
-use sqlx::sqlite::{SqlitePool as SqlxPool, SqlitePoolOptions};
 use sqlx::Error as SqlxError;
+use sqlx::sqlite::{SqlitePool as SqlxPool, SqlitePoolOptions};
 use std::time::Duration;
 
 #[derive(Clone)]

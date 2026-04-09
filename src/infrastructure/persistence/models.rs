@@ -1,4 +1,4 @@
-use sqlx::FromRow; 
+use sqlx::FromRow;
 
 #[derive(FromRow)]
 pub struct ValidationSchemaRow {
@@ -15,4 +15,10 @@ pub struct ValidationSchemaRowWhitId {
     pub json_schema: String,
     pub created_at: String,
     pub updated_at: String,
+}
+
+#[derive(FromRow)]
+pub struct ConnectionTypeRow {
+    pub id: u32,
+    pub connection_type: String,
 }

@@ -3,7 +3,6 @@
 // use crate::domain::error::IoTBeeError;
 // use crate::domain::value_objects::pipelines_values::{PipelineId, PipelineStatus};
 
-
 // #[async_trait]
 // pub trait PipelineManager {
 //     async fn start_pipeline(&self, pipeline_id: &PipelineId) -> Result<(), IoTBeeError>;

@@ -1,8 +1,6 @@
-
-use std::convert::From; 
+use crate::adapters::api::validation_schemas::models::CreateValidationSchemaRequest;
 use crate::application::validation_schemas_cases::validation_entities::ValidationSchema;
-use crate::adapters::api::validation_schemas::models::CreateValidationSchemaRequest; 
-
+use std::convert::From;
 
 impl From<CreateValidationSchemaRequest> for ValidationSchema {
     fn from(request: CreateValidationSchemaRequest) -> Self {
@@ -13,11 +11,8 @@ impl From<CreateValidationSchemaRequest> for ValidationSchema {
     }
 }
 
-
-use crate::application::validation_schemas_cases::validation_entities::{ValidationSchemaModel};
-use crate::adapters::api::validation_schemas::models::{ValidationSchemaResponse};
-
-
+use crate::adapters::api::validation_schemas::models::ValidationSchemaResponse;
+use crate::application::validation_schemas_cases::validation_entities::ValidationSchemaModel;
 
 impl From<ValidationSchemaModel> for ValidationSchemaResponse {
     fn from(model: ValidationSchemaModel) -> Self {
@@ -31,9 +26,8 @@ impl From<ValidationSchemaModel> for ValidationSchemaResponse {
     }
 }
 
-
-use crate::application::validation_schemas_cases::validation_entities::{ValidationSchemeModeById};
-use crate::adapters::api::validation_schemas::models::{ValidationSchemaByIdResponse};
+use crate::adapters::api::validation_schemas::models::ValidationSchemaByIdResponse;
+use crate::application::validation_schemas_cases::validation_entities::ValidationSchemeModeById;
 
 impl From<ValidationSchemeModeById> for ValidationSchemaByIdResponse {
     fn from(model: ValidationSchemeModeById) -> Self {

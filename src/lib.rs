@@ -1,14 +1,13 @@
-// src/lib.rs 
-//! IoT Bee 
-//! 
+// src/lib.rs
+//! IoT Bee
 //!
-//! 
+//!
+//!
 
+//modules declaration
 
-//modules declaration 
-
-pub mod domain; 
-pub mod application;
-pub mod infrastructure;
-pub mod composition; 
 pub mod adapters;
+pub mod application;
+pub mod composition;
+pub mod domain;
+pub mod infrastructure;

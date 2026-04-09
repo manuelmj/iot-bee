@@ -9,5 +9,3 @@
 //     async fn stop(&self, pipeline_id: &PipelineId) -> Result<(), PipelineLifecycleError>;
 //     async fn restart(&self, pipeline_id: &PipelineId) -> Result<(), PipelineLifecycleError>;
 // }
-
-

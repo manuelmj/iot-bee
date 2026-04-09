@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 
 pub struct ValidationSchema {
     pub name: String,
-    pub schema: String
+    pub schema: String,
 }
 impl ValidationSchema {
     pub fn new(name: impl Into<String>, schema: impl Into<String>) -> Self {
@@ -19,7 +19,6 @@ impl ValidationSchema {
     }
 }
 
-
 pub struct ValidationSchemaModel {
     pub id: u32,
     pub name: String,
@@ -28,8 +27,14 @@ pub struct ValidationSchemaModel {
     pub updated_at: DateTime<Utc>,
 }
 
-impl  ValidationSchemaModel {
-    pub fn new(id: u32,name: impl Into<String>, schema: impl Into<String>, created_at: DateTime<Utc>, updated_at: DateTime<Utc>) -> Self {
+impl ValidationSchemaModel {
+    pub fn new(
+        id: u32,
+        name: impl Into<String>,
+        schema: impl Into<String>,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+    ) -> Self {
         ValidationSchemaModel {
             id, // El ID se asignará al guardar en la base de datos
             name: name.into(),
@@ -39,8 +44,6 @@ impl  ValidationSchemaModel {
         }
     }
 }
-        
-
 
 pub struct ValidationSchemeModeById {
     pub name: String,
@@ -50,7 +53,12 @@ pub struct ValidationSchemeModeById {
 }
 
 impl ValidationSchemeModeById {
-    pub fn new(name: impl Into<String>, schema: impl Into<String>, created_at: DateTime<Utc>, updated_at: DateTime<Utc>) -> Self {
+    pub fn new(
+        name: impl Into<String>,
+        schema: impl Into<String>,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+    ) -> Self {
         ValidationSchemeModeById {
             name: name.into(),
             schema: schema.into(),
@@ -59,4 +67,3 @@ impl ValidationSchemeModeById {
         }
     }
 }
-

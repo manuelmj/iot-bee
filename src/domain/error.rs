@@ -52,7 +52,7 @@ pub enum PipelinePersistenceError {
     ValidationSchemaNotFound { schema_id: String },
 }
 
-// define a proper domain error for all my sistem 
+// define a proper domain error for all my sistem
 #[derive(Error, Debug)]
 pub enum IoTBeeError {
     #[error("Pipeline error: {0}")]

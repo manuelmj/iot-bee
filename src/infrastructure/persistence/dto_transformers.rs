@@ -1,13 +1,16 @@
-
-
-use crate::domain::entities::pipeline::{PipelineNewValidateSchema,PipelineValidationSchemaModel};
-use crate::domain::value_objects::pipelines_values::{PipelineSchemaModel,DataStroreId};
+use crate::domain::entities::pipeline::{
+    ConnectionTypeModel, PipelineNewValidateSchema, PipelineValidationSchemaModel,
+};
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
-use crate::infrastructure::persistence::models::{ValidationSchemaRow,ValidationSchemaRowWhitId};
+use crate::domain::value_objects::pipelines_values::{DataStroreId, PipelineSchemaModel};
+use crate::infrastructure::persistence::models::{
+    ConnectionTypeRow, ValidationSchemaRow, ValidationSchemaRowWhitId,
+};
+
 use chrono::DateTime;
 
+use chrono::Utc;
 use std::convert::TryFrom;
-use chrono::{Utc};
 
 impl TryFrom<ValidationSchemaRow> for PipelineNewValidateSchema {
     type Error = IoTBeeError;
@@ -25,7 +28,6 @@ impl TryFrom<ValidationSchemaRow> for PipelineNewValidateSchema {
             })?
             .with_timezone(&Utc);
 
-
         let result = PipelineNewValidateSchema::existing(
             row.json_name,
             row.json_schema,
@@ -36,8 +38,6 @@ impl TryFrom<ValidationSchemaRow> for PipelineNewValidateSchema {
         Ok(result)
     }
 }
-
-
 
 impl TryFrom<ValidationSchemaRowWhitId> for PipelineValidationSchemaModel {
     type Error = IoTBeeError;
@@ -67,3 +67,10 @@ impl TryFrom<ValidationSchemaRowWhitId> for PipelineValidationSchemaModel {
     }
 }
 
+impl TryFrom<ConnectionTypeRow> for ConnectionTypeModel {
+    type Error = IoTBeeError;
+
+    fn try_from(row: ConnectionTypeRow) -> Result<Self, Self::Error> {
+        Ok(ConnectionTypeModel::new(row.connection_type, row.id)?)
+    }
+}

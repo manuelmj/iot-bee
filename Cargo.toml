@@ -27,6 +27,10 @@ toml = "1.1.2"
 # Validation 
 validator = { version = "0.20.0", features = ["derive"] }
 
+# Documentation
+utoipa = { version = "5", features = ["actix_extras"] }
+utoipa-swagger-ui = { version = "9", features = ["actix-web"] }
+
 # Logging and monitoring
 
 # Error handling

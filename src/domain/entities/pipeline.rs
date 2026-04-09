@@ -1,38 +1,48 @@
-
-use crate::domain::value_objects::pipelines_values::DataStroreId; 
-//imports relate to pipeline data source 
-use crate::domain::value_objects::pipelines_values::{ConnectionType, PipelineDataSourceId, PipilineDataSourceConnection};
-use chrono::{DateTime, Utc}; 
+use crate::domain::value_objects::pipelines_values::DataStroreId;
+//imports relate to pipeline data source
+use crate::domain::value_objects::pipelines_values::{
+    ConnectionType, PipelineDataSourceId, PipilineDataSourceConnection,
+};
+use chrono::{DateTime, Utc};
 
 use crate::domain::error::IoTBeeError;
 
-
 //imports relate to validation schemas
-use crate::domain::value_objects::pipelines_values::{PipelineSchemaModel};
-// structs relate to pipeline data source 
-pub struct PipeLineDataSourceModel{
-    id : DataStroreId,  
+use crate::domain::value_objects::pipelines_values::PipelineSchemaModel;
+// structs relate to pipeline data source
+pub struct PipeLineDataSourceModel {
+    id: DataStroreId,
     name: String,
-    source_type: ConnectionType, 
+    source_type: ConnectionType,
     source_connection: PipilineDataSourceConnection,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
 
-
-
-// structs relate to validations schemas 
-pub struct PipelineValidationSchemaModel{
+// structs relate to validations schemas
+pub struct PipelineValidationSchemaModel {
     id: DataStroreId,
     name: String,
-    schema: PipelineSchemaModel, 
+    schema: PipelineSchemaModel,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
 
 impl PipelineValidationSchemaModel {
-    pub fn new(id: DataStroreId, name: String, schema: PipelineSchemaModel, created_at: DateTime<Utc>, updated_at: DateTime<Utc>) -> Self {
-        Self { id, name, schema, created_at, updated_at }
+    pub fn new(
+        id: DataStroreId,
+        name: String,
+        schema: PipelineSchemaModel,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            schema,
+            created_at,
+            updated_at,
+        }
     }
 
     pub fn id(&self) -> u32 {
@@ -54,30 +64,30 @@ impl PipelineValidationSchemaModel {
     pub fn updated_at(&self) -> &DateTime<Utc> {
         &self.updated_at
     }
-
 }
 
-
-pub struct PipelineNewValidateSchema{
+pub struct PipelineNewValidateSchema {
     pub name: String,
-    pub schema: PipelineSchemaModel, 
+    pub schema: PipelineSchemaModel,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
 impl PipelineNewValidateSchema {
-
-    pub fn existing( name: impl Into<String>, schema: impl Into<String>, created_at: DateTime<Utc>, updated_at: DateTime<Utc>) -> 
-    Result<Self, IoTBeeError> {
+    pub fn existing(
+        name: impl Into<String>,
+        schema: impl Into<String>,
+        created_at: DateTime<Utc>,
+        updated_at: DateTime<Utc>,
+    ) -> Result<Self, IoTBeeError> {
         let schema = PipelineSchemaModel::new(schema.into())?;
-        
+
         Ok(PipelineNewValidateSchema {
             name: name.into(),
             schema,
             created_at,
             updated_at,
         })
-        
     }
 
     pub fn new(name: impl Into<String>, schema: impl Into<String>) -> Result<Self, IoTBeeError> {
@@ -91,7 +101,7 @@ impl PipelineNewValidateSchema {
         })
     }
 
-    pub fn name (&self) -> &String {
+    pub fn name(&self) -> &String {
         &self.name
     }
     pub fn schema(&self) -> &str {
@@ -99,18 +109,31 @@ impl PipelineNewValidateSchema {
     }
     pub fn created_at(&self) -> &DateTime<Utc> {
         &self.created_at
-
     }
     pub fn updated_at(&self) -> &DateTime<Utc> {
         &self.updated_at
     }
-
-
-
 }
 
-
-
-
-
-
+pub struct ConnectionTypeModel {
+    connection_type_id: DataStroreId,
+    connection_type: String,
+}
+impl ConnectionTypeModel {
+    pub fn new(
+        connection_type: impl Into<String>,
+        connection_type_id: u32,
+    ) -> Result<Self, IoTBeeError> {
+        let connection_type_id = DataStroreId::new(connection_type_id);
+        Ok(ConnectionTypeModel {
+            connection_type_id,
+            connection_type: connection_type.into(),
+        })
+    }
+    pub fn id(&self) -> u32 {
+        self.connection_type_id.id()
+    }
+    pub fn connection_type(&self) -> &str {
+        &self.connection_type
+    }
+}

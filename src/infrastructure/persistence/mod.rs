@@ -1,7 +1,7 @@
-//Public 
+//Public
 pub mod connection;
 pub mod repositories;
 
-//Private 
-mod models;
+//Private
 mod dto_transformers;
+mod models;
