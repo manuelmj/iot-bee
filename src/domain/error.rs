@@ -34,22 +34,36 @@ pub enum DataSourceError {
 
 #[derive(Error, Debug)]
 pub enum PipelinePersistenceError {
-    #[error("Pipeline could not be persisted: {reason}")]
+    #[error("Data could not be persisted: {reason}")]
     SaveFailed { reason: String },
-    #[error("Pipeline could not be deleted: {reason}")]
+    #[error("Data could not be updated: {reason}")]
     UpdateFailed { reason: String },
-    #[error("Pipeline could not be updated: {reason}")]
+    #[error("Data could not be deleted: {reason}")]
     DeleteFailed { reason: String },
-    #[error("Database operation failed: {reason}")]
-    Database { reason: String },
     #[error("Failed to parse data: {reason}")]
     ParseError { reason: String },
-    #[error("Pipeline validation schema with name {name} already exists")]
+    #[error("Validation schema with name {name} already exists")]
     ValidationSchemaNameExists { name: String },
-    #[error("Invalid data for pipeline validation schema: {reason}")]
+    #[error("Invalid data for validation schema: {reason}")]
     InvalidData { reason: String },
-    #[error("Pipeline validation schema with id {schema_id} not found")]
+    #[error("Validation schema with id {schema_id} not found")]
     ValidationSchemaNotFound { schema_id: String },
+    #[error("Operation with id {id} not found")]
+    IdNotFound { id: u32 },
+    #[error("Database operation failed: {reason}")]
+    Database { reason: String },
+}
+
+#[derive(Error, Debug)]
+pub enum DomainValidationError {
+    #[error("Validation failed: {reason}")]
+    ValidationFailed { reason: String },
+    #[error("Invalid field value for {field_name}: {reason}")]
+    InvalidFieldValue { field_name: String, reason: String },
+    #[error("Missing required field: {field_name}")]
+    MissingField { field_name: String },
+    #[error("Data format error: {reason}")]
+    DataFormatError { reason: String },
 }
 
 // define a proper domain error for all my sistem
@@ -63,4 +77,6 @@ pub enum IoTBeeError {
     DataSourceError(#[from] DataSourceError),
     #[error("Persistence error: {0}")]
     PipelinePersistenceError(#[from] PipelinePersistenceError),
+    #[error("Domain validation error: {0}")]
+    DomainValidationError(#[from] DomainValidationError),
 }

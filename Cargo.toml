@@ -28,7 +28,7 @@ toml = "1.1.2"
 validator = { version = "0.20.0", features = ["derive"] }
 
 # Documentation
-utoipa = { version = "5", features = ["actix_extras"] }
+utoipa = { version = "5", features = ["actix_extras", "chrono"] }
 utoipa-swagger-ui = { version = "9", features = ["actix-web"] }
 
 # Logging and monitoring
@@ -39,7 +39,7 @@ utoipa-swagger-ui = { version = "9", features = ["actix-web"] }
 uuid = { version = "1.23.0", features = ["v4","serde"] }
 dotenv = "0.15.0"
 thiserror = "2.0.18"
-chrono = "0.4.44"
+chrono = {version= "0.4.44", features = ["serde"]}
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite"] }
 
  

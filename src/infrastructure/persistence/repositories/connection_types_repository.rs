@@ -1,6 +1,6 @@
 use crate::domain::outbound::pipeline_persistence::PipelineConnectionTypeRepository;
 // use crate::domain::outbound::PipelineGeneralRepository;
-use crate::domain::entities::pipeline::ConnectionTypeModel;
+use crate::domain::entities::connection_type::ConnectionTypeModel;
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 use crate::infrastructure::persistence::repositories::pipeline_repository::PipelineStoreRepository;
 use async_trait::async_trait;
@@ -16,7 +16,7 @@ impl PipelineConnectionTypeRepository for PipelineStoreRepository {
         let result = sqlx::query_as::<_, ConnectionTypeRow>(
             r#"
             SELECT id, connection_type FROM connection_types
-            "#  ,
+            "#,
         )
         .fetch_all(pool)
         .await

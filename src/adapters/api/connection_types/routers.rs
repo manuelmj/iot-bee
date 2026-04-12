@@ -1,6 +1,6 @@
 use crate::application::connection_types_cases::cases::ConnectionTypesUseCases;
 use crate::domain::error::IoTBeeError;
-use actix_web::{HttpResponse, get,web};
+use actix_web::{HttpResponse, get, web};
 
 type UseCase = dyn ConnectionTypesUseCases + Send + Sync;
 

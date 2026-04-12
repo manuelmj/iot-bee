@@ -1,10 +1,12 @@
-use crate::domain::entities::pipeline::{
-    ConnectionTypeModel, PipelineNewValidateSchema, PipelineValidationSchemaModel,
+use crate::domain::entities::connection_type::ConnectionTypeModel;
+use crate::domain::entities::data_source::PipelineDataSourceOutputModel;
+use crate::domain::entities::validation_schema::{
+    PipelineNewValidateSchema, PipelineValidationSchemaModel,
 };
+use crate::domain::entities::pipeline_groups::{PipelineGroupOutputModel};
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
-use crate::domain::value_objects::pipelines_values::{DataStroreId, PipelineSchemaModel};
 use crate::infrastructure::persistence::models::{
-    ConnectionTypeRow, ValidationSchemaRow, ValidationSchemaRowWhitId,
+    ConnectionTypeRow, DataSourceRow, ValidationSchemaRow, ValidationSchemaRowWhitId, PipelineGroupRow,
 };
 
 use chrono::DateTime;
@@ -55,15 +57,13 @@ impl TryFrom<ValidationSchemaRowWhitId> for PipelineValidationSchemaModel {
             })?
             .with_timezone(&Utc);
 
-        let schema = PipelineSchemaModel::new(row.json_schema)?;
-
         Ok(PipelineValidationSchemaModel::new(
-            DataStroreId::new(row.id),
+            row.id,
             row.json_name,
-            schema,
+            row.json_schema,
             created_at,
             updated_at,
-        ))
+        )?)
     }
 }
 
@@ -72,5 +72,62 @@ impl TryFrom<ConnectionTypeRow> for ConnectionTypeModel {
 
     fn try_from(row: ConnectionTypeRow) -> Result<Self, Self::Error> {
         Ok(ConnectionTypeModel::new(row.connection_type, row.id)?)
+    }
+}
+
+impl TryFrom<DataSourceRow> for PipelineDataSourceOutputModel {
+    type Error = IoTBeeError;
+
+    fn try_from(row: DataSourceRow) -> Result<Self, Self::Error> {
+        let created_at = DateTime::parse_from_rfc3339(&row.created_at)
+            .map_err(|e| PipelinePersistenceError::Database {
+                reason: format!("invalid created_at: {}", e),
+            })?
+            .with_timezone(&Utc);
+
+        let updated_at = DateTime::parse_from_rfc3339(&row.updated_at)
+            .map_err(|e| PipelinePersistenceError::Database {
+                reason: format!("invalid updated_at: {}", e),
+            })?
+            .with_timezone(&Utc);
+
+        Ok(PipelineDataSourceOutputModel::new(
+            row.id,
+            row.name,
+            row.data_source_type_id,
+            row.data_source_state,
+            row.data_source_configuration,
+            row.data_source_description,
+            created_at,
+            updated_at,
+        )?)
+    }
+}
+
+
+
+impl TryFrom<PipelineGroupRow> for PipelineGroupOutputModel {
+    type Error = IoTBeeError;
+
+    fn try_from(row: PipelineGroupRow) -> Result<Self, Self::Error> {
+        let created_at = DateTime::parse_from_rfc3339(&row.created_at)
+            .map_err(|e| PipelinePersistenceError::Database {
+                reason: format!("invalid created_at: {}", e),
+            })?
+            .with_timezone(&Utc);
+
+        let updated_at = DateTime::parse_from_rfc3339(&row.updated_at)
+            .map_err(|e| PipelinePersistenceError::Database {
+                reason: format!("invalid updated_at: {}", e),
+            })?
+            .with_timezone(&Utc);
+
+        Ok(PipelineGroupOutputModel::new(
+            row.id,
+            row.name,
+            row.description,
+            created_at,
+            updated_at,
+        )?)
     }
 }

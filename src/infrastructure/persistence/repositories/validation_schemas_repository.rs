@@ -1,6 +1,8 @@
 use crate::domain::outbound::pipeline_persistence::PipelineValidationSchemaRepository;
 // use crate::domain::outbound::PipelineGeneralRepository;
-use crate::domain::entities::pipeline::{PipelineNewValidateSchema, PipelineValidationSchemaModel};
+use crate::domain::entities::validation_schema::{
+    PipelineNewValidateSchema, PipelineValidationSchemaModel,
+};
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 use crate::domain::value_objects::pipelines_values::DataStroreId;
 use crate::infrastructure::persistence::models::{ValidationSchemaRow, ValidationSchemaRowWhitId};

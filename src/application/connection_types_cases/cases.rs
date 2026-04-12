@@ -1,8 +1,8 @@
-use crate::domain::entities::pipeline::ConnectionTypeModel;
+use crate::domain::entities::connection_type::ConnectionTypeModel;
 use crate::domain::error::IoTBeeError;
 use crate::domain::outbound::PipelineGeneralRepository;
-use std::sync::Arc;
 use async_trait::async_trait;
+use std::sync::Arc;
 
 pub struct ConnectionType {
     pub id: u32,
@@ -33,8 +33,9 @@ impl<T: PipelineGeneralRepository + Send + Sync> ConnectionTypesUseCasesImpl<T> 
 }
 
 #[async_trait]
-impl<T: PipelineGeneralRepository + Send + Sync> ConnectionTypesUseCases
-    for ConnectionTypesUseCasesImpl<T>
+impl<T> ConnectionTypesUseCases for ConnectionTypesUseCasesImpl<T>
+where
+    T: PipelineGeneralRepository + Send + Sync,
 {
     async fn get_all_connection_types(&self) -> Result<Vec<ConnectionType>, IoTBeeError> {
         let connection_types_models: Vec<ConnectionTypeModel> =

@@ -7,8 +7,7 @@ use crate::adapters::api::validation_schemas::models::{
     SchemaId, ValidationSchemaByIdResponse, ValidationSchemaResponse,
 };
 use crate::application::validation_schemas_cases::cases::SchemaValidationUseCases;
-use crate::application::validation_schemas_cases::validation_entities::ValidationSchemaModel;
-use crate::domain::error::IoTBeeError;
+use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 use actix_web::{HttpResponse, delete, get, post, put, web};
 use validator::Validate;
 
@@ -44,7 +43,7 @@ pub async fn create_validation_schema(
     let schema_data: CreateValidationSchemaRequest = body.into_inner();
     schema_data.validate_values()?;
     use_case
-        .create_validation_schema(&schema_data.into())
+        .create_validation_schema(&schema_data.name, &schema_data.json_schema)
         .await?;
 
     Ok(HttpResponse::Created().finish())
@@ -69,14 +68,8 @@ pub async fn get_validation_schema(
 ) -> Result<HttpResponse, IoTBeeError> {
     let id = id_path.into_inner();
     let result = use_case.get_validation_schema_by_id(id).await?;
-
-    match result {
-        Some(schema) => {
-            let response: ValidationSchemaByIdResponse = schema.into();
-            Ok(HttpResponse::Ok().json(response))
-        }
-        None => Ok(HttpResponse::NotFound().finish()),
-    }
+    let response: ValidationSchemaByIdResponse = result.into();
+    Ok(HttpResponse::Ok().json(response))
 }
 
 #[utoipa::path(
@@ -91,8 +84,9 @@ pub async fn get_validation_schema(
 pub async fn list_validation_schemas(
     _use_case: web::Data<UseCase>,
 ) -> Result<HttpResponse, IoTBeeError> {
-    let result: Vec<ValidationSchemaModel> = _use_case.get_validation_schema().await?;
-    let result: Vec<ValidationSchemaResponse> = result
+    let result: Vec<ValidationSchemaResponse> = _use_case
+        .get_validation_schema()
+        .await?
         .into_iter()
         .map(ValidationSchemaResponse::from)
         .collect();
@@ -122,13 +116,11 @@ pub async fn update_validation_schema(
 ) -> Result<HttpResponse, IoTBeeError> {
     let id = id_path.into_inner();
     let schema_data: UpdateValidationSchemaRequestName = body.into_inner();
-    schema_data.validate().map_err(|e| {
-        IoTBeeError::from(
-            crate::domain::error::PipelinePersistenceError::InvalidData {
-                reason: e.to_string(),
-            },
-        )
-    })?;
+    schema_data
+        .validate()
+        .map_err(|e| PipelinePersistenceError::InvalidData {
+            reason: e.to_string(),
+        })?;
 
     use_case
         .update_validation_schema_name(id as u32, &schema_data.name)
@@ -154,7 +146,7 @@ pub async fn update_validation_schema(
 #[put("/{id}/schema")]
 pub async fn update_validation_schema_json(
     use_case: web::Data<UseCase>,
-    id_path: web::Path<i32>,
+    id_path: web::Path<u32>,
     body: web::Json<UpdateValidationSchemaRequestJson>,
 ) -> Result<HttpResponse, IoTBeeError> {
     let id = id_path.into_inner();
@@ -170,7 +162,7 @@ pub async fn update_validation_schema_json(
     delete,
     path = "/validation-schemas/{id}",
     params(
-        ("id" = i32, Path, description = "Schema ID")
+        ("id" = u32, Path, description = "Schema ID")
     ),
     responses(
         (status = 204, description = "Schema deleted"),
@@ -181,7 +173,7 @@ pub async fn update_validation_schema_json(
 #[delete("/{id}")]
 pub async fn delete_validation_schema(
     _use_case: web::Data<UseCase>,
-    _path: web::Path<i32>,
+    _path: web::Path<SchemaId>,
 ) -> Result<HttpResponse, IoTBeeError> {
     // TODO: llamar use_case.delete_pipeline_validation_schema()
     Ok(HttpResponse::NoContent().finish())

@@ -3,12 +3,14 @@ pub mod pipeline_lifecycle;
 pub mod pipeline_persistence;
 
 use pipeline_persistence::{
-    PipelineConnectionTypeRepository, PipelineLifecycleRepository,
+    PipelineConnectionTypeRepository, 
     PipelineValidationSchemaRepository,
+    PipelineDataSourceRepository,
+    PipelineGroupRepository
 };
 
 #[async_trait::async_trait]
 pub trait PipelineGeneralRepository:
-    PipelineValidationSchemaRepository + PipelineConnectionTypeRepository
+    PipelineValidationSchemaRepository + PipelineConnectionTypeRepository + PipelineDataSourceRepository + PipelineGroupRepository
 {
 }
