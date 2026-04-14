@@ -1,13 +1,13 @@
-use crate::infrastructure::persistence::repositories::pipeline_repository::PipelineStoreRepository;
-use crate::domain::outbound::pipeline_persistence::PipelineGroupRepository;
 use crate::domain::entities::pipeline_groups::{PipelineGroupInputModel, PipelineGroupOutputModel};
-use crate::domain::value_objects::pipelines_values::DataStroreId;
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
+use crate::domain::outbound::pipeline_persistence::PipelineGroupRepository;
+use crate::domain::value_objects::pipelines_values::DataStroreId;
 use crate::infrastructure::persistence::models::PipelineGroupRow;
+use crate::infrastructure::persistence::repositories::pipeline_repository::PipelineStoreRepository;
 
 use async_trait::async_trait;
-use sqlx::Error as SqlxError;
 use chrono::Utc;
+use sqlx::Error as SqlxError;
 
 #[async_trait]
 impl PipelineGroupRepository for PipelineStoreRepository {
@@ -21,16 +21,21 @@ impl PipelineGroupRepository for PipelineStoreRepository {
         .fetch_all(pool)
         .await
         .map_err(|e| PipelinePersistenceError::Database {
-            reason: e.to_string()})?;  
+            reason: e.to_string(),
+        })?;
 
-        let output: Vec<PipelineGroupOutputModel> = result.into_iter()
+        let output: Vec<PipelineGroupOutputModel> = result
+            .into_iter()
             .map(|row| row.try_into())
             .collect::<Result<_, _>>()?;
 
         Ok(output)
     }
 
-    async fn get_pipeline_group_by_id(&self, group_id: &DataStroreId) -> Result<Option<PipelineGroupOutputModel>, IoTBeeError> {
+    async fn get_pipeline_group_by_id(
+        &self,
+        group_id: &DataStroreId,
+    ) -> Result<Option<PipelineGroupOutputModel>, IoTBeeError> {
         let pool = self.data_base_connection().pool();
         let result: Option<PipelineGroupRow> = sqlx::query_as::<_, PipelineGroupRow>(
             r#"
@@ -41,13 +46,17 @@ impl PipelineGroupRepository for PipelineStoreRepository {
         .fetch_optional(pool)
         .await
         .map_err(|e| PipelinePersistenceError::Database {
-            reason: e.to_string()})?;  
+            reason: e.to_string(),
+        })?;
 
         let output = result.map(|row| row.try_into()).transpose()?;
         Ok(output)
     }
-    
-    async fn save_pipeline_group(&self, group: &PipelineGroupInputModel) -> Result<(), IoTBeeError> {
+
+    async fn save_pipeline_group(
+        &self,
+        group: &PipelineGroupInputModel,
+    ) -> Result<(), IoTBeeError> {
         let pool = self.data_base_connection().pool();
         let result = sqlx::query(
             r#"
@@ -63,17 +72,15 @@ impl PipelineGroupRepository for PipelineStoreRepository {
 
         match result {
             Ok(_) => Ok(()),
-            Err(SqlxError::Database(db_error)) if db_error.is_unique_violation() => Err(
-               PipelinePersistenceError::ValidationSchemaNameExists{
+            Err(SqlxError::Database(db_error)) if db_error.is_unique_violation() => {
+                Err(PipelinePersistenceError::ValidationSchemaNameExists {
                     name: group.name().to_string(),
                 }
-                .into(),
-            ),
+                .into())
+            }
             Err(e) => Err(IoTBeeError::from(PipelinePersistenceError::SaveFailed {
                 reason: e.to_string(),
             })),
         }
     }
-
-} 
-        
+}

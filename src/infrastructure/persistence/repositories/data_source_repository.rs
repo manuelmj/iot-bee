@@ -1,17 +1,17 @@
 //domain imports
 use crate::domain::entities::data_source::{
-    PipelineDataSourceInputModel, PipelineDataSourceOutputModel,PipelineDataSourceUpdateModel
+    PipelineDataSourceInputModel, PipelineDataSourceOutputModel, PipelineDataSourceUpdateModel,
 };
 use crate::domain::error::IoTBeeError;
 use crate::domain::outbound::pipeline_persistence::PipelineDataSourceRepository;
 //infrastructure imports
 use crate::domain::error::PipelinePersistenceError;
-use crate::domain::value_objects::pipelines_values::{DataStroreId,FieldName};
+use crate::domain::value_objects::pipelines_values::{DataStroreId, FieldName};
 use crate::infrastructure::persistence::models::DataSourceRow;
 use crate::infrastructure::persistence::repositories::pipeline_repository::PipelineStoreRepository;
 use async_trait::async_trait;
-use sqlx::Error as SqlxError;
 use chrono::Utc;
+use sqlx::Error as SqlxError;
 
 #[async_trait]
 
@@ -55,7 +55,7 @@ impl PipelineDataSourceRepository for PipelineStoreRepository {
             })),
         }
     }
-    
+
     async fn get_pipeline_data_source(
         &self,
         data_source_id: &DataStroreId,
@@ -107,44 +107,68 @@ impl PipelineDataSourceRepository for PipelineStoreRepository {
         Ok(result)
     }
 
-    async fn update_pipeline_data_source(&self, data_source_id: &DataStroreId, data_source: &PipelineDataSourceUpdateModel) -> Result<(), IoTBeeError> {
+    async fn update_pipeline_data_source(
+        &self,
+        data_source_id: &DataStroreId,
+        data_source: &PipelineDataSourceUpdateModel,
+    ) -> Result<(), IoTBeeError> {
         // Implementation to update the pipeline data source in the database
         let pool = self.data_base_connection().pool();
-        //validar de data source que campos estan none y solo actuliar los campos que tengan contenido 
+        //validar de data source que campos estan none y solo actuliar los campos que tengan contenido
         let mut query: String = String::from("UPDATE data_sources SET ");
         let mut params: Vec<(String, String)> = Vec::new();
-        
+
         if let Some(data_source_type_id) = &data_source.data_source_type_id() {
             query.push_str("data_source_type_id = ?, ");
-            params.push(("data_source_type_id".to_string(), data_source_type_id.to_string()));
+            params.push((
+                "data_source_type_id".to_string(),
+                data_source_type_id.to_string(),
+            ));
         }
         if let Some(data_source_state) = &data_source.data_source_state() {
             query.push_str("data_source_state = ?, ");
-            params.push(("data_source_state".to_string(), data_source_state.to_string()));
+            params.push((
+                "data_source_state".to_string(),
+                data_source_state.to_string(),
+            ));
         }
         if let Some(data_source_configuration) = &data_source.data_source_configuration() {
             query.push_str("data_source_configuration = ?, ");
-            params.push(("data_source_configuration".to_string(), data_source_configuration.to_string()));
+            params.push((
+                "data_source_configuration".to_string(),
+                data_source_configuration.to_string(),
+            ));
         }
         if let Some(data_source_description) = &data_source.description() {
             query.push_str("data_source_description = ?, ");
-            params.push(("data_source_description".to_string(), data_source_description.to_string()));
+            params.push((
+                "data_source_description".to_string(),
+                data_source_description.to_string(),
+            ));
         }
         query.push_str("updated_at = ? WHERE id = ?");
         let mut sql_query = sqlx::query(&query);
         for param in params {
             sql_query = sql_query.bind(param.1);
         }
-        sql_query = sql_query.bind(Utc::now().to_rfc3339()).bind(data_source_id.id());
-        sql_query.execute(pool)
+        sql_query = sql_query
+            .bind(Utc::now().to_rfc3339())
+            .bind(data_source_id.id());
+        sql_query
+            .execute(pool)
             .await
             .map_err(|e| PipelinePersistenceError::Database {
-                reason: e.to_string(),            })?;
+                reason: e.to_string(),
+            })?;
 
         Ok(())
     }
 
-    async fn update_pipeline_data_source_name(&self,data_source_id: &DataStroreId, name : &FieldName) -> Result<(), IoTBeeError> {
+    async fn update_pipeline_data_source_name(
+        &self,
+        data_source_id: &DataStroreId,
+        name: &FieldName,
+    ) -> Result<(), IoTBeeError> {
         // Implementation to update the pipeline data source name in the database
         let pool = self.data_base_connection().pool();
         sqlx::query(
@@ -161,8 +185,7 @@ impl PipelineDataSourceRepository for PipelineStoreRepository {
         .await
         .map_err(|e| PipelinePersistenceError::Database {
             reason: e.to_string(),
-        })?;    
+        })?;
         Ok(())
     }
-
 }

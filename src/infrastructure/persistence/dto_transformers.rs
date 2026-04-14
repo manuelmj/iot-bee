@@ -1,13 +1,17 @@
 use crate::domain::entities::connection_type::ConnectionTypeModel;
 use crate::domain::entities::data_source::PipelineDataSourceOutputModel;
+use crate::domain::entities::pipeline_groups::PipelineGroupOutputModel;
+use crate::domain::entities::data_store::PipelineDataStoreOutputModel;
+use crate::domain::entities::pipeline_data::PipelineDataOutputModel;
 use crate::domain::entities::validation_schema::{
     PipelineNewValidateSchema, PipelineValidationSchemaModel,
 };
-use crate::domain::entities::pipeline_groups::{PipelineGroupOutputModel};
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 use crate::infrastructure::persistence::models::{
-    ConnectionTypeRow, DataSourceRow, ValidationSchemaRow, ValidationSchemaRowWhitId, PipelineGroupRow,
+    ConnectionTypeRow, DataSourceRow, PipelineGroupRow, ValidationSchemaRow,
+    ValidationSchemaRowWhitId, DataStoreRow,PipelineRowFlat
 };
+
 
 use chrono::DateTime;
 
@@ -19,13 +23,13 @@ impl TryFrom<ValidationSchemaRow> for PipelineNewValidateSchema {
 
     fn try_from(row: ValidationSchemaRow) -> Result<Self, Self::Error> {
         let created_at = DateTime::parse_from_rfc3339(&row.created_at)
-            .map_err(|e| PipelinePersistenceError::Database {
+            .map_err(|e| PipelinePersistenceError::InvalidData {
                 reason: format!("invalid created_at: {}", e),
             })?
             .with_timezone(&Utc);
 
         let updated_at = DateTime::parse_from_rfc3339(&row.updated_at)
-            .map_err(|e| PipelinePersistenceError::Database {
+            .map_err(|e| PipelinePersistenceError::InvalidData {
                 reason: format!("invalid updated_at: {}", e),
             })?
             .with_timezone(&Utc);
@@ -46,13 +50,13 @@ impl TryFrom<ValidationSchemaRowWhitId> for PipelineValidationSchemaModel {
 
     fn try_from(row: ValidationSchemaRowWhitId) -> Result<Self, Self::Error> {
         let created_at = DateTime::parse_from_rfc3339(&row.created_at)
-            .map_err(|e| PipelinePersistenceError::Database {
+            .map_err(|e| PipelinePersistenceError::InvalidData {
                 reason: format!("invalid created_at: {}", e),
             })?
             .with_timezone(&Utc);
 
         let updated_at = DateTime::parse_from_rfc3339(&row.updated_at)
-            .map_err(|e| PipelinePersistenceError::Database {
+            .map_err(|e| PipelinePersistenceError::InvalidData {
                 reason: format!("invalid updated_at: {}", e),
             })?
             .with_timezone(&Utc);
@@ -80,13 +84,13 @@ impl TryFrom<DataSourceRow> for PipelineDataSourceOutputModel {
 
     fn try_from(row: DataSourceRow) -> Result<Self, Self::Error> {
         let created_at = DateTime::parse_from_rfc3339(&row.created_at)
-            .map_err(|e| PipelinePersistenceError::Database {
+            .map_err(|e| PipelinePersistenceError::InvalidData {
                 reason: format!("invalid created_at: {}", e),
             })?
             .with_timezone(&Utc);
 
         let updated_at = DateTime::parse_from_rfc3339(&row.updated_at)
-            .map_err(|e| PipelinePersistenceError::Database {
+            .map_err(|e| PipelinePersistenceError::InvalidData {
                 reason: format!("invalid updated_at: {}", e),
             })?
             .with_timezone(&Utc);
@@ -104,20 +108,18 @@ impl TryFrom<DataSourceRow> for PipelineDataSourceOutputModel {
     }
 }
 
-
-
 impl TryFrom<PipelineGroupRow> for PipelineGroupOutputModel {
     type Error = IoTBeeError;
 
     fn try_from(row: PipelineGroupRow) -> Result<Self, Self::Error> {
         let created_at = DateTime::parse_from_rfc3339(&row.created_at)
-            .map_err(|e| PipelinePersistenceError::Database {
+            .map_err(|e| PipelinePersistenceError::InvalidData {
                 reason: format!("invalid created_at: {}", e),
             })?
             .with_timezone(&Utc);
 
         let updated_at = DateTime::parse_from_rfc3339(&row.updated_at)
-            .map_err(|e| PipelinePersistenceError::Database {
+            .map_err(|e| PipelinePersistenceError::InvalidData {
                 reason: format!("invalid updated_at: {}", e),
             })?
             .with_timezone(&Utc);
@@ -130,4 +132,73 @@ impl TryFrom<PipelineGroupRow> for PipelineGroupOutputModel {
             updated_at,
         )?)
     }
+}
+
+
+impl TryFrom<DataStoreRow> for PipelineDataStoreOutputModel {
+    type Error = IoTBeeError;
+
+    fn try_from(row: DataStoreRow) -> Result<Self, Self::Error> {
+        let created_at = DateTime::parse_from_rfc3339(&row.created_at)
+            .map_err(|e| PipelinePersistenceError::InvalidData {
+                reason: format!("invalid created_at: {}", e),
+            })?
+            .with_timezone(&Utc);
+
+        let updated_at = DateTime::parse_from_rfc3339(&row.updated_at)
+            .map_err(|e| PipelinePersistenceError::InvalidData {
+                reason: format!("invalid updated_at: {}", e),
+            })?
+            .with_timezone(&Utc);
+
+        Ok(PipelineDataStoreOutputModel::new(
+            row.id,
+            row.name,
+            row.type_id,
+            row.json_schema,
+            row.description,
+            created_at,
+            updated_at,
+        )?)
+    }
+}
+
+impl TryFrom<PipelineRowFlat> for PipelineDataOutputModel {
+    type Error = IoTBeeError;
+
+    fn try_from(value: PipelineRowFlat) -> Result<Self, Self::Error> {
+        
+    
+        let created_at = DateTime::parse_from_rfc3339(&value.created_at)
+            .map_err(|e| PipelinePersistenceError::InvalidData {
+                reason: format!("invalid created_at: {}", e),
+            })?
+            .with_timezone(&Utc);
+        
+        let updated_at = DateTime::parse_from_rfc3339(&value.updated_at)
+            .map_err(|e| PipelinePersistenceError::InvalidData {
+                reason: format!("invalid updated_at: {}", e),
+            })?
+            .with_timezone(&Utc);
+
+        Ok(PipelineDataOutputModel::new(
+            value.id,
+            value.name,
+            value.group_id,
+            value.group_name,
+            value.db_id,
+            value.db_name,
+            value.data_source_id,
+            value.data_source_name,
+            value.validation_schema_id,
+            value.validation_schema_name,
+            value.replicas,
+            value.status,
+            created_at,
+            updated_at,
+        )?)
+
+
+    }
+    
 }

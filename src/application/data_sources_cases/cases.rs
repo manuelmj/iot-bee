@@ -1,8 +1,7 @@
 use crate::domain::entities::data_source::{
-    PipelineDataSourceInputModel, PipelineDataSourceOutputModel,
-    PipelineDataSourceUpdateModel,
+    PipelineDataSourceInputModel, PipelineDataSourceOutputModel, PipelineDataSourceUpdateModel,
 };
-use crate::domain::value_objects::pipelines_values::{DataStroreId,FieldName};
+use crate::domain::value_objects::pipelines_values::{DataStroreId, FieldName};
 
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 use crate::domain::outbound::PipelineGeneralRepository;
@@ -16,8 +15,16 @@ pub trait DataSourcesUseCases {
         data_source: &PipelineDataSourceInputModel,
     ) -> Result<(), IoTBeeError>;
     // async fn delete_data_source(&self) -> Result<(), IoTBeeError>;
-    async fn update_data_source(&self, data_source_id: &u32, data: &PipelineDataSourceUpdateModel) -> Result<(), IoTBeeError>;
-    async fn update_data_source_name(&self,data_source_id: &u32, new_name: &str) -> Result<(), IoTBeeError>;
+    async fn update_data_source(
+        &self,
+        data_source_id: &u32,
+        data: &PipelineDataSourceUpdateModel,
+    ) -> Result<(), IoTBeeError>;
+    async fn update_data_source_name(
+        &self,
+        data_source_id: &u32,
+        new_name: &str,
+    ) -> Result<(), IoTBeeError>;
     async fn get_data_source(
         &self,
         data_source_id: &u32,
@@ -68,16 +75,28 @@ where
         self.repository.list_pipeline_data_source().await
     }
 
-    async fn update_data_source(&self, data_source_id: &u32, data: &PipelineDataSourceUpdateModel) -> Result<(), IoTBeeError> {
+    async fn update_data_source(
+        &self,
+        data_source_id: &u32,
+        data: &PipelineDataSourceUpdateModel,
+    ) -> Result<(), IoTBeeError> {
         let data_source_id = DataStroreId::new(*data_source_id)?;
-        let update_result = self.repository.update_pipeline_data_source(&data_source_id, data).await?;
+        let update_result = self
+            .repository
+            .update_pipeline_data_source(&data_source_id, data)
+            .await?;
         //TODO: Crear aca la logica de reiniciar los pipelines que usen esta data source,
         Ok(update_result)
     }
-    async fn update_data_source_name(&self, data_source_id: &u32, new_name: &str) -> Result<(), IoTBeeError> {
+    async fn update_data_source_name(
+        &self,
+        data_source_id: &u32,
+        new_name: &str,
+    ) -> Result<(), IoTBeeError> {
         let data_source_id = DataStroreId::new(*data_source_id)?;
         let field_name = FieldName::new(new_name)?;
-        self.repository.update_pipeline_data_source_name(&data_source_id, &field_name).await
+        self.repository
+            .update_pipeline_data_source_name(&data_source_id, &field_name)
+            .await
     }
-
 }

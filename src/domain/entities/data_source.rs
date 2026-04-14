@@ -1,4 +1,4 @@
-use crate::domain::error::{IoTBeeError,PipelinePersistenceError};
+use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 use crate::domain::value_objects::pipelines_values::{DataStroreId, DescriptionField, FieldName};
 use chrono::{DateTime, Utc};
 /// Modelo de entrada para registrar un nuevo data source.
@@ -98,7 +98,6 @@ impl PipelineDataSourceOutputModel {
     }
 }
 
-
 pub struct PipelineDataSourceUpdateModel {
     data_source_type_id: Option<DataStroreId>,
     data_source_state: Option<String>,
@@ -112,8 +111,11 @@ impl PipelineDataSourceUpdateModel {
         data_source_configuration: Option<impl Into<String>>,
         data_source_description: Option<impl Into<String>>,
     ) -> Result<Self, IoTBeeError> {
-
-        if  data_source_type_id.is_none() && data_source_state.is_none() && data_source_configuration.is_none() && data_source_description.is_none() {
+        if data_source_type_id.is_none()
+            && data_source_state.is_none()
+            && data_source_configuration.is_none()
+            && data_source_description.is_none()
+        {
             return Err(IoTBeeError::from(PipelinePersistenceError::InvalidData {
                 reason: "At least one field must be provided for update".to_string(),
             }));
@@ -130,18 +132,19 @@ impl PipelineDataSourceUpdateModel {
                 .transpose()?,
         })
     }
-    
+
     pub fn description(&self) -> Option<&str> {
-        self.data_source_description.as_ref().map(|d| d.description())
+        self.data_source_description
+            .as_ref()
+            .map(|d| d.description())
     }
     pub fn data_source_type_id(&self) -> Option<u32> {
-        self.data_source_type_id.as_ref().map(|id| id.id()) 
+        self.data_source_type_id.as_ref().map(|id| id.id())
     }
     pub fn data_source_state(&self) -> Option<&str> {
         self.data_source_state.as_deref()
     }
     pub fn data_source_configuration(&self) -> Option<&str> {
         self.data_source_configuration.as_deref()
-        
     }
 }

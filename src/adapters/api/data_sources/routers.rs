@@ -1,9 +1,14 @@
-use super::models::{CreateDataSourceRequest, DataSourceResponse, UpdateDataSourceRequest, UpdateDataSourceNameRequest,DataSourceId};
+use super::models::{
+    CreateDataSourceRequest, DataSourceId, DataSourceResponse, UpdateDataSourceNameRequest,
+    UpdateDataSourceRequest,
+};
 use crate::adapters::api::error::ErrorResponse;
 use crate::application::data_sources_cases::cases::DataSourcesUseCases;
-use crate::domain::entities::data_source::{PipelineDataSourceInputModel,PipelineDataSourceUpdateModel};
+use crate::domain::entities::data_source::{
+    PipelineDataSourceInputModel, PipelineDataSourceUpdateModel,
+};
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
-use actix_web::{HttpResponse, post, web,get,put};
+use actix_web::{HttpResponse, get, post, put, web};
 use validator::Validate;
 
 type UseCase = dyn DataSourcesUseCases + Send + Sync;
@@ -69,13 +74,9 @@ pub async fn get_data_source(
     Ok(HttpResponse::Ok().json(response))
 }
 
-
-
-
 #[utoipa::path(
     get,
     path = "/data-sources",
-    
     responses(
         (status = 200, description = "Data sources retrieved successfully", body = [DataSourceResponse]),
         (status = 404, description = "Data sources not found", body = ErrorResponse)
@@ -83,18 +84,14 @@ pub async fn get_data_source(
     tag = "Data Sources"
 )]
 #[get("")]
-pub async fn list_data_sources(
-    use_case: web::Data<UseCase>,
-) -> Result<HttpResponse, IoTBeeError> {
+pub async fn list_data_sources(use_case: web::Data<UseCase>) -> Result<HttpResponse, IoTBeeError> {
     let data_sources = use_case.list_data_sources().await?;
     let response: Vec<DataSourceResponse> = data_sources
         .into_iter()
         .map(|ds| DataSourceResponse::try_from(ds))
         .collect::<Result<_, _>>()?;
     Ok(HttpResponse::Ok().json(response))
-
 }
-
 
 #[utoipa::path(
     put,
@@ -117,11 +114,14 @@ pub async fn update_data_source_name(
     body: web::Json<UpdateDataSourceNameRequest>,
 ) -> Result<HttpResponse, IoTBeeError> {
     let new_name = body.into_inner();
-    new_name.validate()
+    new_name
+        .validate()
         .map_err(|e| PipelinePersistenceError::InvalidData {
             reason: e.to_string(),
         })?;
-    use_case.update_data_source_name(&id, &new_name.name).await?;
+    use_case
+        .update_data_source_name(&id, &new_name.name)
+        .await?;
     Ok(HttpResponse::Ok().finish())
 }
 
@@ -146,7 +146,8 @@ pub async fn update_data_source(
     body: web::Json<UpdateDataSourceRequest>,
 ) -> Result<HttpResponse, IoTBeeError> {
     let update_data: UpdateDataSourceRequest = body.into_inner();
-    update_data.validate()
+    update_data
+        .validate()
         .map_err(|e| PipelinePersistenceError::InvalidData {
             reason: e.to_string(),
         })?;

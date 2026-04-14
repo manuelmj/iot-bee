@@ -1,9 +1,8 @@
+use crate::domain::entities::pipeline_groups::{PipelineGroupInputModel, PipelineGroupOutputModel};
+use crate::domain::error::IoTBeeError;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::Validate;
-use crate::domain::entities::pipeline_groups::{PipelineGroupInputModel, PipelineGroupOutputModel};
-use crate::domain::error::{IoTBeeError};
-
 
 pub type GroupId = u32;
 
@@ -36,7 +35,7 @@ pub struct GroupResponse {
     pub created_at: String,
     #[serde(rename = "updatedAt")]
     pub updated_at: String,
-}   
+}
 impl TryFrom<PipelineGroupOutputModel> for GroupResponse {
     type Error = IoTBeeError;
 

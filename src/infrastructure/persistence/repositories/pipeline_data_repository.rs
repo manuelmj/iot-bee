@@ -1,0 +1,135 @@
+use crate::infrastructure::persistence::repositories::pipeline_repository::PipelineStoreRepository;
+use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
+use crate::domain::outbound::pipeline_persistence::PipelineControllerRepository;
+use crate::domain::entities::pipeline_data::{PipelineDataInputModel, PipelineDataOutputModel};
+use crate::domain::value_objects::pipelines_values::DataStroreId;
+use crate::infrastructure::persistence::models::PipelineRowFlat;
+
+use async_trait::async_trait;
+use sqlx::Error as SqlxError;
+use chrono::Utc;
+
+
+#[async_trait]
+impl PipelineControllerRepository for PipelineStoreRepository {
+    async fn save_pipeline(&self, pipeline: &PipelineDataInputModel) -> Result<(), IoTBeeError> {
+        let pool = self.data_base_connection().pool();
+        sqlx::query(
+            r#"
+            INSERT INTO pipelines (name, group_id, db_id, data_source_id, validation_schema_id, replicas, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            "#,
+        )
+        .bind(pipeline.name())
+        .bind(pipeline.group_id())
+        .bind(pipeline.store_id())
+        .bind(pipeline.data_source_id())
+        .bind(pipeline.validation_schema_id())
+        .bind(pipeline.pipeline_replication())
+        .bind("stopped") // Default status when creating a pipeline
+        .bind(Utc::now().to_rfc3339())
+        .bind(Utc::now().to_rfc3339())
+        .execute(pool)
+        .await
+        .map_err(|e| {
+            match e {
+                SqlxError::Database(db_error) if db_error.is_unique_violation() => {PipelinePersistenceError::ValidationSchemaNameExists{ name: pipeline.name().to_string() }},
+                SqlxError::Database(db_error) if db_error.is_foreign_key_violation() => {PipelinePersistenceError::InvalidData { reason: db_error.to_string() }},
+                _ => PipelinePersistenceError::SaveFailed { reason: e.to_string() },
+            }
+        })?;
+        
+        Ok(())
+    }
+
+
+    async fn get_pipeline(&self) -> Result<Vec<PipelineDataOutputModel>, IoTBeeError> {
+        let pool = self.data_base_connection().pool();
+        let rows_result  = sqlx::query_as::<_, PipelineRowFlat>(
+            r#"
+            SELECT 
+                p.id,
+                p.name,
+
+                pg.id as group_id,
+                pg.name as group_name,
+
+                d.id as db_id,
+                d.name as db_name,
+
+                ds.id as data_source_id,
+                ds.name as data_source_name,
+
+                vs.id as validation_schema_id,
+                vs.json_name as validation_schema_name,
+
+                p.replicas,
+                p.status,
+                p.created_at,
+                p.updated_at
+
+            FROM pipelines p
+            JOIN pipeline_groups pg ON p.group_id = pg.id
+            JOIN databases d ON p.db_id = d.id
+            JOIN data_sources ds ON p.data_source_id = ds.id
+            JOIN validation_schemas vs ON p.validation_schema_id = vs.id
+            "#
+        )
+        .fetch_all(pool)
+        .await
+        .map_err(|e| 
+            IoTBeeError::from(PipelinePersistenceError::Database{ reason: e.to_string() }))?;
+        
+        
+        let result = rows_result.into_iter()
+            .map(|row| row.try_into())
+            .collect::<Result<Vec<PipelineDataOutputModel>, _>>()?;
+
+        Ok(result)
+    }
+
+    async fn get_pipeline_by_id(&self, pipeline_id: &DataStroreId) -> Result<Option<PipelineDataOutputModel>, IoTBeeError> {
+        let pool = self.data_base_connection().pool();
+        let row_result = sqlx::query_as::<_, PipelineRowFlat>(
+            r#"
+            SELECT 
+                p.id,
+                p.name,
+
+                pg.id as group_id,
+                pg.name as group_name,
+
+                d.id as db_id,
+                d.name as db_name,
+
+                ds.id as data_source_id,
+                ds.name as data_source_name,
+
+                vs.id as validation_schema_id,
+                vs.name as validation_schema_name,
+
+                p.replicas,
+                p.status,
+                p.created_at,
+                p.updated_at
+
+            FROM pipelines p
+            JOIN pipeline_groups pg ON p.group_id = pg.id
+            JOIN databases d ON p.db_id = d.id
+            JOIN data_sources ds ON p.data_source_id = ds.id
+            JOIN validation_schemas vs ON p.validation_schema_id = vs.id
+            "#
+        )
+        .bind(pipeline_id.id())
+        .fetch_optional(pool)
+        .await
+        .map_err(|e| 
+            IoTBeeError::from(PipelinePersistenceError::Database{ reason: e.to_string() }))?;
+        
+        let result = row_result
+            .map(|row| row.try_into())
+            .transpose()?;
+
+        Ok(result)
+    }
+}

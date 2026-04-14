@@ -1,13 +1,12 @@
 use crate::adapters::api::pipeline_groups::models::{CreateGroupRequest, GroupResponse};
-use crate::domain::error::{IoTBeeError,PipelinePersistenceError};
-use crate::application::groups_cases::cases::{PipelineGroupUseCases};
+use crate::application::groups_cases::cases::PipelineGroupUseCases;
+use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 
 use crate::adapters::api::error::ErrorResponse;
-use actix_web::{web, HttpResponse,get, post};
+use actix_web::{HttpResponse, get, post, web};
 use validator::Validate;
 
 type UseCase = dyn PipelineGroupUseCases + Send + Sync;
-
 
 pub fn pipeline_groups_scope(use_case: web::Data<UseCase>) -> actix_web::Scope {
     web::scope("/pipeline-groups")
@@ -34,12 +33,16 @@ pub async fn create_pipeline_group(
     body: web::Json<CreateGroupRequest>,
 ) -> Result<HttpResponse, IoTBeeError> {
     let group_data: CreateGroupRequest = body.into_inner();
-    group_data.validate().map_err(|e| PipelinePersistenceError::InvalidData { reason: e.to_string() })?;
-    use_case.create_pipeline_group(&group_data.name, &group_data.description)
+    group_data
+        .validate()
+        .map_err(|e| PipelinePersistenceError::InvalidData {
+            reason: e.to_string(),
+        })?;
+    use_case
+        .create_pipeline_group(&group_data.name, &group_data.description)
         .await?;
     Ok(HttpResponse::Created().finish())
 }
-
 
 #[utoipa::path(
     get,
@@ -54,7 +57,8 @@ pub async fn get_pipeline_groups(
     use_case: web::Data<UseCase>,
 ) -> Result<HttpResponse, IoTBeeError> {
     let groups = use_case.get_pipeline_groups().await?;
-    let response: Vec<GroupResponse> = groups.into_iter()
+    let response: Vec<GroupResponse> = groups
+        .into_iter()
         .map(GroupResponse::try_from)
         .collect::<Result<_, IoTBeeError>>()?;
     Ok(HttpResponse::Ok().json(response))
@@ -82,5 +86,3 @@ pub async fn get_pipeline_group_by_id(
     let response = GroupResponse::try_from(group)?;
     Ok(HttpResponse::Ok().json(response))
 }
-
-

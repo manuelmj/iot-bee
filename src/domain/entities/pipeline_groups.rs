@@ -1,15 +1,17 @@
-use crate::domain::error::{IoTBeeError};
-use crate::domain::value_objects::pipelines_values::{DataStroreId,FieldName,DescriptionField};
+use crate::domain::error::IoTBeeError;
+use crate::domain::value_objects::pipelines_values::{DataStroreId, DescriptionField, FieldName};
 
 use chrono::{DateTime, Utc};
-
 
 pub struct PipelineGroupInputModel {
     name: FieldName,
     description: DescriptionField,
 }
 impl PipelineGroupInputModel {
-    pub fn new(name: impl Into<String>, description: impl Into<String>) -> Result<Self, IoTBeeError> {
+    pub fn new(
+        name: impl Into<String>,
+        description: impl Into<String>,
+    ) -> Result<Self, IoTBeeError> {
         Ok(Self {
             name: FieldName::new(name)?,
             description: DescriptionField::new(description)?,
@@ -30,7 +32,6 @@ pub struct PipelineGroupOutputModel {
     description: DescriptionField,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
-
 }
 impl PipelineGroupOutputModel {
     pub fn new(

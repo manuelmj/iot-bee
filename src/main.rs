@@ -32,13 +32,24 @@ use iot_bee::adapters::api::data_sources::routers::data_sources_scope;
 use iot_bee::application::data_sources_cases::cases::DataSourcesUseCases;
 use iot_bee::application::data_sources_cases::cases::DataSourcesUseCasesImpl;
 
-//para los casos de uso de pipeline groups 
+//para los casos de uso de pipeline groups
 use iot_bee::adapters::api::pipeline_groups::routers as pipeline_groups_routers;
 use iot_bee::adapters::api::pipeline_groups::routers::pipeline_groups_scope;
 use iot_bee::application::groups_cases::cases::PipelineGroupUseCases;
 use iot_bee::application::groups_cases::cases::PipelineGroupUseCasesImpl;
 
+// para los casos de uso de data stores
+use iot_bee::adapters::api::data_store::routers as data_store_routers;
+use iot_bee::adapters::api::data_store::routers::data_store_scope;
+use iot_bee::application::data_store_cases::cases::DataStoreUseCases;
+use iot_bee::application::data_store_cases::cases::DataStoreUseCasesImpl;
 
+
+//para los casos de pipeline data 
+use iot_bee::adapters::api::pipeline_data::routers as pipeline_data_routers;
+use iot_bee::adapters::api::pipeline_data::routers::pipeline_data_scope;
+use iot_bee::application::pipeline_data_cases::cases::PipelineDataUseCases;
+use iot_bee::application::pipeline_data_cases::cases::PipelineDataUseCasesImpl;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -62,6 +73,14 @@ use iot_bee::application::groups_cases::cases::PipelineGroupUseCasesImpl;
         pipeline_groups_routers::create_pipeline_group,
         pipeline_groups_routers::get_pipeline_groups,
         pipeline_groups_routers::get_pipeline_group_by_id,
+        //routes for data stores
+        data_store_routers::create_data_store,
+        data_store_routers::get_data_store,
+        data_store_routers::list_data_stores,
+        // routes for pipeline data
+        pipeline_data_routers::create_pipeline_data,
+        pipeline_data_routers::get_pipeline_data,
+        pipeline_data_routers::get_pipeline_data_by_id,
     ),
     components(
         schemas(
@@ -76,7 +95,11 @@ use iot_bee::application::groups_cases::cases::PipelineGroupUseCasesImpl;
     ),
     tags(
         (name = "Validation Schemas", description = "CRUD operations for pipeline validation schemas"),
-        (name = "Connection Types", description = "Endpoint to get all connection types")
+        (name = "Connection Types", description = "Endpoint to get all connection types"),
+        (name = "Data Sources", description = "CRUD operations for data sources"),
+        (name = "Pipeline Groups", description = "CRUD operations for pipeline groups"),
+        (name = "Data Stores", description = "CRUD operations for data stores"),
+        (name = "Pipelines", description = "CRUD operations for pipelines")
     )
 )]
 struct ApiDoc;
@@ -109,12 +132,20 @@ async fn main() -> std::io::Result<()> {
         Arc::new(DataSourcesUseCasesImpl::new(repo.clone()));
     let data_sources_use_case_data = web::Data::from(data_sources_use_case.clone());
 
-
     //casos de uso para pipeline groups
     let pipeline_groups_use_case: Arc<dyn PipelineGroupUseCases + Send + Sync> =
         Arc::new(PipelineGroupUseCasesImpl::new(repo.clone()));
     let pipeline_groups_use_case_data = web::Data::from(pipeline_groups_use_case.clone());
 
+    //casos de uso para data stores
+    let data_store_use_case: Arc<dyn DataStoreUseCases + Send + Sync> =
+        Arc::new(DataStoreUseCasesImpl::new(repo.clone()));
+    let data_store_use_case_data = web::Data::from(data_store_use_case.clone());
+
+    // casos de uso para pipeline data
+    let pipeline_data_use_case: Arc<dyn PipelineDataUseCases + Send + Sync> =
+        Arc::new(PipelineDataUseCasesImpl::new(repo.clone()));
+    let pipeline_data_use_case_data = web::Data::from(pipeline_data_use_case.clone());
 
 
     println!("IoT Bee is starting on http://127.0.0.1:8080");
@@ -133,6 +164,8 @@ async fn main() -> std::io::Result<()> {
             ))
             .service(data_sources_scope(data_sources_use_case_data.clone()))
             .service(pipeline_groups_scope(pipeline_groups_use_case_data.clone()))
+            .service(data_store_scope(data_store_use_case_data.clone()))
+            .service(pipeline_data_scope(pipeline_data_use_case_data.clone()))
     })
     .bind("127.0.0.1:8080")?
     .run()

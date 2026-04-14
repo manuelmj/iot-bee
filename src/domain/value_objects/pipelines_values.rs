@@ -24,7 +24,7 @@ pub enum PipelineStatus {
     Failed,
     Pending,
 }
-impl PipelineStatus{
+impl PipelineStatus {
     pub fn new(status: u32) -> Result<Self, IoTBeeError> {
         match status {
             0 => Ok(PipelineStatus::Running),
@@ -47,7 +47,6 @@ impl PipelineStatus{
             PipelineStatus::Failed => 3,
         }
     }
-
 }
 
 pub enum PipelineDataSourceState {
@@ -55,9 +54,6 @@ pub enum PipelineDataSourceState {
     Inactive,
     Error,
 }
-
-
-
 
 pub struct PipelineSchemaModel(String);
 impl PipelineSchemaModel {
@@ -111,8 +107,6 @@ impl DescriptionField {
     }
 }
 
-
-
 pub struct ReplicationFactor(u32);
 impl ReplicationFactor {
     pub fn new(replication_factor: u32) -> Result<Self, IoTBeeError> {
@@ -128,5 +122,19 @@ impl ReplicationFactor {
     }
     pub fn replication_factor(&self) -> u32 {
         self.0
+    }
+}
+
+
+
+pub struct PipelineDataStoreModel(String);
+impl PipelineDataStoreModel {
+    pub fn new(data_store: impl Into<String>) -> Result<Self, IoTBeeError> {
+        //validar aca las caracteristicas que debe tener el data store, por ejemplo que sea un json valido, o que tenga ciertas propiedades, etc.
+        // devolver el error de validacion de datos.
+        Ok(Self(data_store.into()))
+    }
+    pub fn value(&self) -> &str {
+        &self.0
     }
 }

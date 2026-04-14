@@ -1,5 +1,5 @@
 use crate::domain::entities::data_source::{
-    PipelineDataSourceInputModel, PipelineDataSourceOutputModel,PipelineDataSourceUpdateModel
+    PipelineDataSourceInputModel, PipelineDataSourceOutputModel, PipelineDataSourceUpdateModel,
 };
 use crate::domain::error::IoTBeeError;
 use chrono::{DateTime, Utc};
@@ -7,10 +7,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::Validate;
 
-
-
 pub type DataSourceId = u32;
-
 
 #[derive(Deserialize, Validate, ToSchema)]
 pub struct CreateDataSourceRequest {
@@ -81,7 +78,6 @@ impl TryFrom<PipelineDataSourceOutputModel> for DataSourceResponse {
     }
 }
 
-
 #[derive(Deserialize, Validate, ToSchema)]
 pub struct UpdateDataSourceRequest {
     #[serde(rename = "dataSourceTypeId")]
@@ -106,9 +102,7 @@ impl TryFrom<UpdateDataSourceRequest> for PipelineDataSourceUpdateModel {
     }
 }
 
-
-
-#[derive(Deserialize, Validate,ToSchema)]
+#[derive(Deserialize, Validate, ToSchema)]
 pub struct UpdateDataSourceNameRequest {
     #[serde(rename = "name")]
     #[validate(length(min = 1, max = 30))]

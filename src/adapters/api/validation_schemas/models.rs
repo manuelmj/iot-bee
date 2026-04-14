@@ -10,7 +10,6 @@ use serde_json::Value;
 use utoipa::ToSchema;
 use validator::Validate;
 
-
 pub type SchemaId = u32;
 
 #[derive(Deserialize, Validate, ToSchema)]
@@ -96,7 +95,6 @@ impl From<PipelineValidationSchemaModel> for ValidationSchemaResponse {
         }
     }
 }
-
 
 #[derive(Serialize, ToSchema)]
 pub struct ValidationSchemaByIdResponse {
