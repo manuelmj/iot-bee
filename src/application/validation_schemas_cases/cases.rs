@@ -2,7 +2,7 @@ use crate::domain::entities::validation_schema::{
     PipelineNewValidateSchema, PipelineValidationSchemaModel,
 };
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
-use crate::domain::outbound::PipelineGeneralRepository;
+use crate::domain::outbound::pipeline_persistence::PipelineValidationSchemaRepository;
 use crate::domain::value_objects::pipelines_values::DataStroreId;
 use async_trait::async_trait;
 use std::sync::Arc;
@@ -33,11 +33,11 @@ pub trait SchemaValidationUseCases {
     ) -> Result<PipelineNewValidateSchema, IoTBeeError>;
 }
 
-pub struct SchemaValidationUseCasesImpl<T: PipelineGeneralRepository + Send + Sync> {
+pub struct SchemaValidationUseCasesImpl<T: PipelineValidationSchemaRepository + Send + Sync> {
     repository: Arc<T>,
 }
 
-impl<T: PipelineGeneralRepository + Send + Sync> SchemaValidationUseCasesImpl<T> {
+impl<T: PipelineValidationSchemaRepository + Send + Sync> SchemaValidationUseCasesImpl<T> {
     pub fn new(repository: Arc<T>) -> Self {
         Self { repository }
     }
@@ -46,7 +46,7 @@ impl<T: PipelineGeneralRepository + Send + Sync> SchemaValidationUseCasesImpl<T>
 #[async_trait]
 impl<T> SchemaValidationUseCases for SchemaValidationUseCasesImpl<T>
 where
-    T: PipelineGeneralRepository + Send + Sync,
+    T: PipelineValidationSchemaRepository + Send + Sync,
 {
     async fn create_validation_schema(&self, name: &str, schema: &str) -> Result<(), IoTBeeError> {
         let domain_schema = PipelineNewValidateSchema::new(name, schema)?;

@@ -1,7 +1,6 @@
 use crate::domain::entities::data_store::{PipelineDataStoreInputModel, PipelineDataStoreOutputModel};
 use crate::domain::value_objects::pipelines_values::DataStroreId;
-use crate::domain::outbound::PipelineGeneralRepository; 
-
+use crate::domain::outbound::pipeline_persistence::PipelineDataStoreRepository;
 
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 use async_trait::async_trait;
@@ -15,11 +14,11 @@ pub trait DataStoreUseCases{
 }
 
 
-pub struct DataStoreUseCasesImpl<T: PipelineGeneralRepository + Send + Sync> {
+pub struct DataStoreUseCasesImpl<T: PipelineDataStoreRepository + Send + Sync> {
     repository: Arc<T>,
 }
 
-impl<T: PipelineGeneralRepository + Send + Sync> DataStoreUseCasesImpl<T> {
+impl<T: PipelineDataStoreRepository + Send + Sync> DataStoreUseCasesImpl<T> {
     pub fn new(repository: Arc<T>) -> Self {
         Self { repository }
     }
@@ -28,7 +27,7 @@ impl<T: PipelineGeneralRepository + Send + Sync> DataStoreUseCasesImpl<T> {
 #[async_trait]
 impl<T> DataStoreUseCases for DataStoreUseCasesImpl<T>
 where
-    T: PipelineGeneralRepository + Send + Sync,
+    T: PipelineDataStoreRepository + Send + Sync,
 {
     async fn create_data_store(&self, data_store: &PipelineDataStoreInputModel) -> Result<(), IoTBeeError> {
         self.repository.save_pipeline_data_store(data_store).await

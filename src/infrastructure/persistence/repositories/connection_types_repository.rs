@@ -2,14 +2,28 @@ use crate::domain::outbound::pipeline_persistence::PipelineConnectionTypeReposit
 // use crate::domain::outbound::PipelineGeneralRepository;
 use crate::domain::entities::connection_type::ConnectionTypeModel;
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
-use crate::infrastructure::persistence::repositories::pipeline_repository::PipelineStoreRepository;
 use async_trait::async_trait;
 
 use crate::infrastructure::persistence::models::ConnectionTypeRow;
 // use sqlx::Error as SqlxError;
+use std::sync::Arc;
+use crate::infrastructure::persistence::connection::InternalDataBase;
+pub struct ConnectionTypesRepository {
+    pipeline_store_repository: Arc<InternalDataBase>,
+}
+impl ConnectionTypesRepository {
+    pub fn new(pipeline_store_repository: Arc<InternalDataBase>) -> Self {
+        Self {
+            pipeline_store_repository,
+        }
+    }
+    pub fn data_base_connection(&self) -> &InternalDataBase {
+        &self.pipeline_store_repository
+    }
+}
 
 #[async_trait]
-impl PipelineConnectionTypeRepository for PipelineStoreRepository {
+impl PipelineConnectionTypeRepository for ConnectionTypesRepository {
     async fn get_pipeline_connection_type(&self) -> Result<Vec<ConnectionTypeModel>, IoTBeeError> {
         // Implementation to get the pipeline connection type from the database
         let pool = self.data_base_connection().pool();

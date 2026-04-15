@@ -4,17 +4,29 @@ use crate::domain::error::{IoTBeeError,PipelinePersistenceError};
 use crate::domain::entities::data_store::{PipelineDataStoreInputModel, PipelineDataStoreOutputModel};
 use crate::domain::value_objects::pipelines_values::DataStroreId;
 use crate::domain::outbound::pipeline_persistence::PipelineDataStoreRepository;
-use crate::infrastructure::persistence::repositories::pipeline_repository::PipelineStoreRepository; 
 use crate::infrastructure::persistence::models::DataStoreRow;
-
+use crate::infrastructure::persistence::connection::InternalDataBase;
 use async_trait::async_trait;
 use sqlx::Error as SqlxError;
 use chrono::Utc;
+use std::sync::Arc;
 
-
+pub struct DataStoreRepository {
+    pipeline_store_repository: Arc<InternalDataBase>,
+}
+impl DataStoreRepository{
+    pub fn new(pipeline_store_repository: Arc<InternalDataBase>) -> Self {
+        Self {
+            pipeline_store_repository,
+        }
+    }
+    pub fn data_base_connection(&self) -> &InternalDataBase {
+        &self.pipeline_store_repository
+    }
+}
 
 #[async_trait]
-impl PipelineDataStoreRepository for PipelineStoreRepository {
+impl PipelineDataStoreRepository for DataStoreRepository {
     async fn save_pipeline_data_store(&self, data_store: &PipelineDataStoreInputModel) -> Result<(), IoTBeeError> {
         let pool = self.data_base_connection().pool(); 
         sqlx::query(

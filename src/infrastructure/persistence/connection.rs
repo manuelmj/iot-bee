@@ -3,11 +3,11 @@ use sqlx::sqlite::{SqlitePool as SqlxPool, SqlitePoolOptions};
 use std::time::Duration;
 
 #[derive(Clone)]
-pub struct SqliteDb {
+pub struct InternalDataBase {
     pool: SqlxPool,
 }
 
-impl SqliteDb {
+impl InternalDataBase {
     pub async fn new(db_url: &str) -> Result<Self, SqlxError> {
         let pool = SqlitePoolOptions::new()
             .max_connections(10)

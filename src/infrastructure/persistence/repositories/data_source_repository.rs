@@ -8,14 +8,33 @@ use crate::domain::outbound::pipeline_persistence::PipelineDataSourceRepository;
 use crate::domain::error::PipelinePersistenceError;
 use crate::domain::value_objects::pipelines_values::{DataStroreId, FieldName};
 use crate::infrastructure::persistence::models::DataSourceRow;
-use crate::infrastructure::persistence::repositories::pipeline_repository::PipelineStoreRepository;
+use crate::infrastructure::persistence::connection::InternalDataBase;
+
 use async_trait::async_trait;
 use chrono::Utc;
 use sqlx::Error as SqlxError;
+use std::sync::Arc;
+
+pub struct DataSourceRepository {
+    pipeline_store_repository: Arc<InternalDataBase>,
+}
+impl DataSourceRepository {
+    pub fn new(pipeline_store_repository: Arc<InternalDataBase>) -> Self {
+        Self {
+            pipeline_store_repository,
+        }
+    }
+    pub fn data_base_connection(&self) -> &InternalDataBase {
+        &self.pipeline_store_repository
+    }
+}
+
+
+
 
 #[async_trait]
 
-impl PipelineDataSourceRepository for PipelineStoreRepository {
+impl PipelineDataSourceRepository for DataSourceRepository {
     async fn save_pipeline_data_source(
         &self,
         data_source: &PipelineDataSourceInputModel,

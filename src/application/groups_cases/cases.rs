@@ -1,6 +1,6 @@
 use crate::domain::entities::pipeline_groups::{PipelineGroupInputModel, PipelineGroupOutputModel};
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
-use crate::domain::outbound::PipelineGeneralRepository;
+use crate::domain::outbound::pipeline_persistence::PipelineGroupRepository;
 use crate::domain::value_objects::pipelines_values::DataStroreId;
 use async_trait::async_trait;
 use std::sync::Arc;
@@ -22,10 +22,10 @@ pub trait PipelineGroupUseCases {
     // async fn delete_pipeline_group(&self, group_id: &u32) -> Result<(), IoTBeeError>;
 }
 
-pub struct PipelineGroupUseCasesImpl<T: PipelineGeneralRepository + Send + Sync> {
+pub struct PipelineGroupUseCasesImpl<T: PipelineGroupRepository + Send + Sync> {
     repository: Arc<T>,
 }
-impl<T: PipelineGeneralRepository + Send + Sync> PipelineGroupUseCasesImpl<T> {
+impl<T: PipelineGroupRepository + Send + Sync> PipelineGroupUseCasesImpl<T> {
     pub fn new(repository: Arc<T>) -> Self {
         Self { repository }
     }
@@ -34,7 +34,7 @@ impl<T: PipelineGeneralRepository + Send + Sync> PipelineGroupUseCasesImpl<T> {
 #[async_trait]
 impl<T> PipelineGroupUseCases for PipelineGroupUseCasesImpl<T>
 where
-    T: PipelineGeneralRepository + Send + Sync,
+    T: PipelineGroupRepository + Send + Sync,
 {
     async fn create_pipeline_group(
         &self,

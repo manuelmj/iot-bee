@@ -6,13 +6,29 @@ use crate::domain::entities::validation_schema::{
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 use crate::domain::value_objects::pipelines_values::DataStroreId;
 use crate::infrastructure::persistence::models::{ValidationSchemaRow, ValidationSchemaRowWhitId};
-use crate::infrastructure::persistence::repositories::pipeline_repository::PipelineStoreRepository;
 use async_trait::async_trait;
 
 use sqlx::Error as SqlxError;
+use crate::infrastructure::persistence::connection::InternalDataBase;
+use std::sync::Arc;
+pub struct ValidationSchemaRepository {
+    pipeline_store_repository: Arc<InternalDataBase>,
+}
+impl ValidationSchemaRepository {
+    pub fn new(pipeline_store_repository: Arc<InternalDataBase>) -> Self {
+        Self {
+            pipeline_store_repository,
+        }
+    }
+    pub fn data_base_connection(&self) -> &InternalDataBase {
+        &self.pipeline_store_repository
+    }
+}
+
+
 
 #[async_trait]
-impl PipelineValidationSchemaRepository for PipelineStoreRepository {
+impl PipelineValidationSchemaRepository for ValidationSchemaRepository {
     async fn save_pipeline_validation_schema(
         &self,
         schema: &PipelineNewValidateSchema,

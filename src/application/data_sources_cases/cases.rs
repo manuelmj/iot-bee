@@ -4,7 +4,7 @@ use crate::domain::entities::data_source::{
 use crate::domain::value_objects::pipelines_values::{DataStroreId, FieldName};
 
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
-use crate::domain::outbound::PipelineGeneralRepository;
+use crate::domain::outbound::pipeline_persistence::PipelineDataSourceRepository;
 use async_trait::async_trait;
 use std::sync::Arc;
 
@@ -32,10 +32,10 @@ pub trait DataSourcesUseCases {
     async fn list_data_sources(&self) -> Result<Vec<PipelineDataSourceOutputModel>, IoTBeeError>;
 }
 
-pub struct DataSourcesUseCasesImpl<T: PipelineGeneralRepository + Send + Sync> {
+pub struct DataSourcesUseCasesImpl<T: PipelineDataSourceRepository + Send + Sync> {
     repository: Arc<T>,
 }
-impl<T: PipelineGeneralRepository + Send + Sync> DataSourcesUseCasesImpl<T> {
+impl<T: PipelineDataSourceRepository + Send + Sync> DataSourcesUseCasesImpl<T> {
     pub fn new(repository: Arc<T>) -> Self {
         Self { repository }
     }
@@ -44,7 +44,7 @@ impl<T: PipelineGeneralRepository + Send + Sync> DataSourcesUseCasesImpl<T> {
 #[async_trait]
 impl<T> DataSourcesUseCases for DataSourcesUseCasesImpl<T>
 where
-    T: PipelineGeneralRepository + Send + Sync,
+    T: PipelineDataSourceRepository + Send + Sync,
 {
     async fn create_data_source(
         &self,

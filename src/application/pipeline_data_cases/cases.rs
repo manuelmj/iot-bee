@@ -1,5 +1,5 @@
 use crate::domain::error::{IoTBeeError,PipelinePersistenceError};
-use crate::domain::outbound::PipelineGeneralRepository;
+use crate::domain::outbound::pipeline_persistence::PipelineControllerRepository;
 use crate::domain::entities::pipeline_data::{PipelineDataInputModel, PipelineDataOutputModel};
 use crate::domain::value_objects::pipelines_values::DataStroreId;
 use async_trait::async_trait;
@@ -12,10 +12,10 @@ pub trait PipelineDataUseCases {
     async fn get_pipeline_by_id(&self, pipeline_id: &u32) -> Result<PipelineDataOutputModel, IoTBeeError>;
 }
 
-pub struct PipelineDataUseCasesImpl<T: PipelineGeneralRepository + Send + Sync> {
+pub struct PipelineDataUseCasesImpl<T: PipelineControllerRepository + Send + Sync> {
     repository: Arc<T>,
 }
-impl <T: PipelineGeneralRepository + Send + Sync> PipelineDataUseCasesImpl<T> {
+impl <T: PipelineControllerRepository + Send + Sync> PipelineDataUseCasesImpl<T> {
     pub fn new(repository: Arc<T>) -> Self {
         Self { repository }
     }
@@ -24,7 +24,7 @@ impl <T: PipelineGeneralRepository + Send + Sync> PipelineDataUseCasesImpl<T> {
 #[async_trait]
 impl<T> PipelineDataUseCases for PipelineDataUseCasesImpl<T>
 where
-    T: PipelineGeneralRepository + Send + Sync,
+    T: PipelineControllerRepository + Send + Sync,
 {
     async fn create_pipeline(&self, pipeline: &PipelineDataInputModel) -> Result<(), IoTBeeError> {
         self.repository.save_pipeline(pipeline).await
@@ -38,7 +38,7 @@ where
             .repository
             .get_pipeline_by_id(&pipeline_id)
             .await?;
- 
+
         match result {
             Some(pipeline) => Ok(pipeline),
             None => Err(PipelinePersistenceError::IdNotFound { id: pipeline_id.id() }.into()),

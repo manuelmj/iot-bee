@@ -3,14 +3,30 @@ use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 use crate::domain::outbound::pipeline_persistence::PipelineGroupRepository;
 use crate::domain::value_objects::pipelines_values::DataStroreId;
 use crate::infrastructure::persistence::models::PipelineGroupRow;
-use crate::infrastructure::persistence::repositories::pipeline_repository::PipelineStoreRepository;
+use crate::infrastructure::persistence::connection::InternalDataBase;
 
 use async_trait::async_trait;
 use chrono::Utc;
 use sqlx::Error as SqlxError;
+use std::sync::Arc;
+pub struct GroupRepository {
+    pipeline_store_repository: Arc<InternalDataBase>,
+}
+impl GroupRepository {
+    pub fn new(pipeline_store_repository: Arc<InternalDataBase>) -> Self {
+        Self {
+            pipeline_store_repository,
+        }
+    }
+    pub fn data_base_connection(&self) -> &InternalDataBase {
+        &self.pipeline_store_repository
+    }
+}
+
+
 
 #[async_trait]
-impl PipelineGroupRepository for PipelineStoreRepository {
+impl PipelineGroupRepository for GroupRepository {
     async fn get_pipeline_group(&self) -> Result<Vec<PipelineGroupOutputModel>, IoTBeeError> {
         let pool = self.data_base_connection().pool();
         let result: Vec<PipelineGroupRow> = sqlx::query_as::<_, PipelineGroupRow>(
