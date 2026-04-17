@@ -43,5 +43,7 @@ dotenv = "0.15.0"
 thiserror = "2.0.18"
 chrono = {version= "0.4.44", features = ["serde"]}
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite"] }
+lapin = "4.4.0"
+futures-util = "0.3.31"
 
  

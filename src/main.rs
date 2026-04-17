@@ -25,7 +25,7 @@ use iot_bee::composition::api_composition::api_composer::AppState;
 
 use utoipa_swagger_ui::SwaggerUi;
 use utoipa::OpenApi;
-use iot_bee::adapters::api_docs::ApiDoc;
+use iot_bee::adapters::api::api_docs::ApiDoc;
 use iot_bee::logging::{AppLogger, init_tracing};
 
 static LOGGER: AppLogger = AppLogger::new("iot_bee::main");
