@@ -39,6 +39,9 @@ pub async fn get_connection_types(
         .map(|data| data.into())
         .collect::<Vec<ConnectionTypeResponse>>();
 
-    LOGGER.info(&format!("Returning {} connection types", connection_types.len()));
+    LOGGER.info(&format!(
+        "Returning {} connection types",
+        connection_types.len()
+    ));
     Ok(HttpResponse::Ok().json(connection_types))
 }

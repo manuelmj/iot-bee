@@ -46,16 +46,21 @@ pub async fn create_data_source(
 
     let data_source_data: CreateDataSourceRequest = body.into_inner();
     data_source_data.validate().map_err(|e| {
-        let err = PipelinePersistenceError::InvalidData { reason: e.to_string() };
+        let err = PipelinePersistenceError::InvalidData {
+            reason: e.to_string(),
+        };
         LOGGER.error(&format!("Validation error creating data source: {e}"));
         err
     })?;
 
     let input_model = PipelineDataSourceInputModel::try_from(data_source_data)?;
-    use_case.create_data_source(&input_model).await.map_err(|e| {
-        LOGGER.error(&format!("Failed to create data source: {e}"));
-        e
-    })?;
+    use_case
+        .create_data_source(&input_model)
+        .await
+        .map_err(|e| {
+            LOGGER.error(&format!("Failed to create data source: {e}"));
+            e
+        })?;
 
     LOGGER.info("Data source created successfully");
     Ok(HttpResponse::Created().finish())
@@ -136,22 +141,32 @@ pub async fn update_data_source_name(
     body: web::Json<UpdateDataSourceNameRequest>,
 ) -> Result<HttpResponse, IoTBeeError> {
     let raw_id = *id;
-    LOGGER.debug(&format!("update_data_source_name handler called for id={raw_id}"));
+    LOGGER.debug(&format!(
+        "update_data_source_name handler called for id={raw_id}"
+    ));
 
     let new_name = body.into_inner();
     new_name.validate().map_err(|e| {
-        let err = PipelinePersistenceError::InvalidData { reason: e.to_string() };
-        LOGGER.error(&format!("Validation error updating name for id={raw_id}: {e}"));
+        let err = PipelinePersistenceError::InvalidData {
+            reason: e.to_string(),
+        };
+        LOGGER.error(&format!(
+            "Validation error updating name for id={raw_id}: {e}"
+        ));
         err
     })?;
     use_case
         .update_data_source_name(&id, &new_name.name)
         .await
         .map_err(|e| {
-            LOGGER.error(&format!("Failed to update name for data source id={raw_id}: {e}"));
+            LOGGER.error(&format!(
+                "Failed to update name for data source id={raw_id}: {e}"
+            ));
             e
         })?;
-    LOGGER.info(&format!("Data source id={raw_id} name updated successfully"));
+    LOGGER.info(&format!(
+        "Data source id={raw_id} name updated successfully"
+    ));
     Ok(HttpResponse::Ok().finish())
 }
 
@@ -176,19 +191,28 @@ pub async fn update_data_source(
     body: web::Json<UpdateDataSourceRequest>,
 ) -> Result<HttpResponse, IoTBeeError> {
     let raw_id = *id;
-    LOGGER.debug(&format!("update_data_source handler called for id={raw_id}"));
+    LOGGER.debug(&format!(
+        "update_data_source handler called for id={raw_id}"
+    ));
 
     let update_data: UpdateDataSourceRequest = body.into_inner();
     update_data.validate().map_err(|e| {
-        let err = PipelinePersistenceError::InvalidData { reason: e.to_string() };
-        LOGGER.error(&format!("Validation error updating data source id={raw_id}: {e}"));
+        let err = PipelinePersistenceError::InvalidData {
+            reason: e.to_string(),
+        };
+        LOGGER.error(&format!(
+            "Validation error updating data source id={raw_id}: {e}"
+        ));
         err
     })?;
     let update_model = PipelineDataSourceUpdateModel::try_from(update_data)?;
-    use_case.update_data_source(&id, &update_model).await.map_err(|e| {
-        LOGGER.error(&format!("Failed to update data source id={raw_id}: {e}"));
-        e
-    })?;
+    use_case
+        .update_data_source(&id, &update_model)
+        .await
+        .map_err(|e| {
+            LOGGER.error(&format!("Failed to update data source id={raw_id}: {e}"));
+            e
+        })?;
     LOGGER.info(&format!("Data source id={raw_id} updated successfully"));
     Ok(HttpResponse::Ok().finish())
 }

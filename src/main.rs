@@ -1,4 +1,4 @@
-use actix_web::{web, App, HttpServer};
+use actix_web::{App, HttpServer, web};
 
 //USE CASES
 //connection types
@@ -20,16 +20,14 @@ use iot_bee::application::data_store_cases::cases::DataStoreUseCases;
 use iot_bee::adapters::api::pipeline_data::routers::pipeline_data_scope;
 use iot_bee::application::pipeline_data_cases::cases::PipelineDataUseCases;
 
-
 use iot_bee::composition::api_composition::api_composer::AppState;
 
-use utoipa_swagger_ui::SwaggerUi;
-use utoipa::OpenApi;
 use iot_bee::adapters::api::api_docs::ApiDoc;
 use iot_bee::logging::{AppLogger, init_tracing};
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 static LOGGER: AppLogger = AppLogger::new("iot_bee::main");
-
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -53,7 +51,7 @@ async fn main() -> std::io::Result<()> {
 
     let data_sources: web::Data<dyn DataSourcesUseCases + Send + Sync> =
         app_store.data_sources_app_state();
-    
+
     let pipeline_groups: web::Data<dyn PipelineGroupUseCases + Send + Sync> =
         app_store.pipeline_groups_app_state();
 
@@ -83,9 +81,7 @@ async fn main() -> std::io::Result<()> {
     .await
 }
 
-
-
-use tracing::info; 
+use tracing::info;
 fn banner() {
     info!("========================================");
     info!("  ____      _______    ____             ");

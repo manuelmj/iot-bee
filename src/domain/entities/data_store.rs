@@ -1,8 +1,10 @@
 use crate::domain::error::IoTBeeError;
-use crate::domain::value_objects::pipelines_values::{DataStoreId, FieldName,PipelineDataStoreModel,DescriptionField};
+use crate::domain::value_objects::pipelines_values::{
+    DataStoreId, DescriptionField, FieldName, PipelineDataStoreModel,
+};
 use chrono::{DateTime, Utc};
 
-pub struct PipelineDataStoreInputModel{
+pub struct PipelineDataStoreInputModel {
     name: FieldName,
     type_id: DataStoreId,
     data_store_description: DescriptionField,
@@ -37,7 +39,7 @@ impl PipelineDataStoreInputModel {
     }
 }
 
-pub struct PipelineDataStoreOutputModel{
+pub struct PipelineDataStoreOutputModel {
     id: DataStoreId,
     name: FieldName,
     type_id: DataStoreId,
@@ -87,5 +89,4 @@ impl PipelineDataStoreOutputModel {
     pub fn updated_at(&self) -> DateTime<Utc> {
         self.updated_at
     }
-
 }

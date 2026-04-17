@@ -1,9 +1,11 @@
-use crate::adapters::api::pipeline_data::models::{CreatePipelineDataRequest,PipelineDataResponse,PipelineDataId};
+use crate::adapters::api::pipeline_data::models::{
+    CreatePipelineDataRequest, PipelineDataId, PipelineDataResponse,
+};
 use crate::application::pipeline_data_cases::cases::PipelineDataUseCases;
-use crate::domain::error::IoTBeeError;
 use crate::domain::entities::pipeline_data::{PipelineDataInputModel, PipelineDataOutputModel};
+use crate::domain::error::IoTBeeError;
 use crate::logging::AppLogger;
-use actix_web::{web, HttpResponse, get, post};
+use actix_web::{HttpResponse, get, post, web};
 
 use crate::adapters::api::error::ErrorResponse;
 type UseCase = dyn PipelineDataUseCases + Send + Sync;
@@ -37,10 +39,13 @@ pub async fn create_pipeline_data(
 
     let pipeline_input: CreatePipelineDataRequest = body.into_inner();
     let pipeline_input: PipelineDataInputModel = pipeline_input.try_into()?;
-    use_case.create_pipeline(&pipeline_input).await.map_err(|e| {
-        LOGGER.error(&format!("Failed to create pipeline: {e}"));
-        e
-    })?;
+    use_case
+        .create_pipeline(&pipeline_input)
+        .await
+        .map_err(|e| {
+            LOGGER.error(&format!("Failed to create pipeline: {e}"));
+            e
+        })?;
     LOGGER.info("Pipeline created successfully");
     Ok(HttpResponse::Created().finish())
 }
@@ -55,16 +60,17 @@ pub async fn create_pipeline_data(
     tag = "Pipelines"
 )]
 #[get("")]
-pub async fn get_pipeline_data(
-    use_case: web::Data<UseCase>,
-) -> Result<HttpResponse, IoTBeeError> {
+pub async fn get_pipeline_data(use_case: web::Data<UseCase>) -> Result<HttpResponse, IoTBeeError> {
     LOGGER.debug("get_pipeline_data handler called");
 
     let pipelines: Vec<PipelineDataOutputModel> = use_case.get_pipeline().await.map_err(|e| {
         LOGGER.error(&format!("Failed to get pipelines: {e}"));
         e
     })?;
-    let response: Vec<PipelineDataResponse> = pipelines.into_iter().map(|p| p.try_into()).collect::<Result<_, IoTBeeError>>()?;
+    let response: Vec<PipelineDataResponse> = pipelines
+        .into_iter()
+        .map(|p| p.try_into())
+        .collect::<Result<_, IoTBeeError>>()?;
     LOGGER.info(&format!("Returning {} pipelines", response.len()));
     Ok(HttpResponse::Ok().json(response))
 }
@@ -87,14 +93,18 @@ pub async fn get_pipeline_data_by_id(
     id: web::Path<PipelineDataId>,
 ) -> Result<HttpResponse, IoTBeeError> {
     let pipeline_id: PipelineDataId = id.into_inner();
-    LOGGER.debug(&format!("get_pipeline_data_by_id handler called for id={pipeline_id}"));
+    LOGGER.debug(&format!(
+        "get_pipeline_data_by_id handler called for id={pipeline_id}"
+    ));
 
-    let pipeline: PipelineDataOutputModel = use_case.get_pipeline_by_id(&pipeline_id).await.map_err(|e| {
-        LOGGER.error(&format!("Failed to get pipeline id={pipeline_id}: {e}"));
-        e
-    })?;
+    let pipeline: PipelineDataOutputModel = use_case
+        .get_pipeline_by_id(&pipeline_id)
+        .await
+        .map_err(|e| {
+            LOGGER.error(&format!("Failed to get pipeline id={pipeline_id}: {e}"));
+            e
+        })?;
     let response: PipelineDataResponse = pipeline.try_into()?;
     LOGGER.info(&format!("Pipeline id={pipeline_id} retrieved successfully"));
     Ok(HttpResponse::Ok().json(response))
 }
-

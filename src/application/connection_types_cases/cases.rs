@@ -31,7 +31,9 @@ pub struct ConnectionTypesUseCasesImpl<T: PipelineConnectionTypeRepository + Sen
 
 impl<T: PipelineConnectionTypeRepository + Send + Sync> ConnectionTypesUseCasesImpl<T> {
     pub fn new(connection_type_repository: Arc<T>) -> Self {
-        Self { connection_type_repository }
+        Self {
+            connection_type_repository,
+        }
     }
 }
 
@@ -43,8 +45,11 @@ where
     async fn get_all_connection_types(&self) -> Result<Vec<ConnectionType>, IoTBeeError> {
         LOGGER.debug("get_all_connection_types use case called");
 
-        let connection_types_models: Vec<ConnectionTypeModel> =
-            self.connection_type_repository.get_pipeline_connection_type().await.map_err(|e| {
+        let connection_types_models: Vec<ConnectionTypeModel> = self
+            .connection_type_repository
+            .get_pipeline_connection_type()
+            .await
+            .map_err(|e| {
                 LOGGER.error(&format!("Failed to fetch connection types: {e}"));
                 e
             })?;
@@ -54,7 +59,10 @@ where
             .map(|model| ConnectionType::new(model.id(), model.connection_type()))
             .collect();
 
-        LOGGER.info(&format!("Found {} connection types", connection_types.len()));
+        LOGGER.info(&format!(
+            "Found {} connection types",
+            connection_types.len()
+        ));
         Ok(connection_types)
     }
 }

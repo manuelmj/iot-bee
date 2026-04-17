@@ -1,16 +1,14 @@
-use crate::domain::value_objects::pipelines_values::{DataStoreId,FieldName};
 use crate::domain::error::IoTBeeError;
+use crate::domain::value_objects::pipelines_values::{DataStoreId, FieldName};
 use chrono::{DateTime, Utc};
 
-
-
-pub struct PipelineDataInputModel{
+pub struct PipelineDataInputModel {
     name: FieldName,
     group_id: DataStoreId,
     store_id: DataStoreId,
     data_source_id: DataStoreId,
     validation_schema_id: DataStoreId,
-    pipeline_replication : u32, 
+    pipeline_replication: u32,
 }
 impl PipelineDataInputModel {
     pub fn new(
@@ -51,18 +49,13 @@ impl PipelineDataInputModel {
     }
 }
 
-
-
-
-
-
-pub struct PipelineDataOutputModel{
+pub struct PipelineDataOutputModel {
     id: DataStoreId,
     name: FieldName,
 
     group_id: DataStoreId,
     group_name: FieldName,
-   
+
     store_id: DataStoreId,
     store_name: FieldName,
 
@@ -72,14 +65,13 @@ pub struct PipelineDataOutputModel{
     validation_schema_id: DataStoreId,
     validation_schema_name: FieldName,
 
-    pipeline_replication : u32,
+    pipeline_replication: u32,
     pipeline_status: String,
 
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
 impl PipelineDataOutputModel {
-    
     pub fn new(
         id: u32,
         name: impl Into<String>,
@@ -95,7 +87,7 @@ impl PipelineDataOutputModel {
         pipeline_status: impl Into<String>,
         created_at: DateTime<Utc>,
         updated_at: DateTime<Utc>,
-    )->Result<Self, IoTBeeError>{
+    ) -> Result<Self, IoTBeeError> {
         Ok(Self {
             id: DataStoreId::new(id)?,
             name: FieldName::new(name)?,
@@ -114,7 +106,7 @@ impl PipelineDataOutputModel {
         })
     }
 
-   pub fn id(&self) -> u32 {
+    pub fn id(&self) -> u32 {
         self.id.id()
     }
     pub fn name(&self) -> &str {

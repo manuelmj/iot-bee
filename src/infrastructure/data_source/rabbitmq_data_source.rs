@@ -1,22 +1,19 @@
-
 use crate::domain::entities::data_consumer_types::DataConsumerRawType;
-use crate::domain::outbound::data_source::DataSource;
 use crate::domain::error::IoTBeeError;
+use crate::domain::outbound::data_source::DataSource;
 
-use tokio::sync::mpsc::Sender;
 use async_trait::async_trait;
 use futures_util::StreamExt;
+use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
-use lapin::{
-    options::*,
-    types::FieldTable,
-    Connection, ConnectionProperties,
-};
+use crate::logging::AppLogger;
+use lapin::{Connection, ConnectionProperties, options::*, types::FieldTable};
 use std::time::Duration;
-use crate::logging::AppLogger; 
 
-static LOGGER: AppLogger = AppLogger::new("iot_bee::infrastructure::data_source::rabbitmq_data_source::RabbitMQDataSource");
+static LOGGER: AppLogger = AppLogger::new(
+    "iot_bee::infrastructure::data_source::rabbitmq_data_source::RabbitMQDataSource",
+);
 pub struct RabbitMQDataSource {
     url: String,
     queue_name: String,
@@ -27,7 +24,11 @@ pub struct RabbitMQDataSource {
     connection_timeout: Duration,
 }
 impl RabbitMQDataSource {
-    pub fn new(url: impl Into<String>, queue_name: impl Into<String>, consumer_name: impl Into<String>) -> Self {
+    pub fn new(
+        url: impl Into<String>,
+        queue_name: impl Into<String>,
+        consumer_name: impl Into<String>,
+    ) -> Self {
         RabbitMQDataSource {
             url: url.into(),
             queue_name: queue_name.into(),
@@ -63,7 +64,10 @@ impl RabbitMQDataSource {
 
 #[async_trait]
 impl DataSource for RabbitMQDataSource {
-    async fn start_to_consume(&self, sender: Sender<DataConsumerRawType>) -> Result<(), IoTBeeError> {
+    async fn start_to_consume(
+        &self,
+        sender: Sender<DataConsumerRawType>,
+    ) -> Result<(), IoTBeeError> {
         let url = self.url().to_string();
         let queue_name = self.queue_name().to_string();
         let prefetch_count = self.prefetch_count();
@@ -160,19 +164,29 @@ impl DataSource for RabbitMQDataSource {
                             let dto = match parsed {
                                 Ok(v) => v,
                                 Err(e) => {
-                                    LOGGER.error(&format!("Invalid payload, rejecting message. parse_error={}", e));
+                                    LOGGER.error(&format!(
+                                        "Invalid payload, rejecting message. parse_error={}",
+                                        e
+                                    ));
                                     if let Err(nack_err) = delivery
-                                        .nack(BasicNackOptions { requeue: false, ..Default::default() })
+                                        .nack(BasicNackOptions {
+                                            requeue: false,
+                                            ..Default::default()
+                                        })
                                         .await
                                     {
-                                        LOGGER.error(&format!("Nack failed for invalid payload: {}", nack_err));
+                                        LOGGER.error(&format!(
+                                            "Nack failed for invalid payload: {}",
+                                            nack_err
+                                        ));
                                     }
                                     continue;
                                 }
                             };
 
                             if sender.send(dto).await.is_err() {
-                                LOGGER.warn("Receiver dropped while sending DTO. Stopping consumer");
+                                LOGGER
+                                    .warn("Receiver dropped while sending DTO. Stopping consumer");
                                 break 'reconnect;
                             }
 
@@ -221,10 +235,18 @@ impl RabbitMQDataSource {
             Connection::connect(url, ConnectionProperties::default()),
         )
         .await
-        .map_err(|_| format!("Connection timed out after {}s", connection_timeout.as_secs()))?
+        .map_err(|_| {
+            format!(
+                "Connection timed out after {}s",
+                connection_timeout.as_secs()
+            )
+        })?
         .map_err(|e| e.to_string())?;
 
-        let channel = connection.create_channel().await.map_err(|e| e.to_string())?;
+        let channel = connection
+            .create_channel()
+            .await
+            .map_err(|e| e.to_string())?;
 
         channel
             .basic_qos(prefetch_count, BasicQosOptions::default())

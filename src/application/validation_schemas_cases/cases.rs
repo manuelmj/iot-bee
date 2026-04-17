@@ -52,7 +52,9 @@ where
     T: PipelineValidationSchemaRepository + Send + Sync,
 {
     async fn create_validation_schema(&self, name: &str, schema: &str) -> Result<(), IoTBeeError> {
-        LOGGER.debug(&format!("create_validation_schema use case called for name='{name}'"));
+        LOGGER.debug(&format!(
+            "create_validation_schema use case called for name='{name}'"
+        ));
 
         let domain_schema = PipelineNewValidateSchema::new(name, schema)?;
         self.repository
@@ -71,10 +73,14 @@ where
         &self,
     ) -> Result<Vec<PipelineValidationSchemaModel>, IoTBeeError> {
         LOGGER.debug("get_validation_schema use case called");
-        let result = self.repository.list_pipeline_validation_schema().await.map_err(|e| {
-            LOGGER.error(&format!("Failed to list validation schemas: {e}"));
-            e
-        })?;
+        let result = self
+            .repository
+            .list_pipeline_validation_schema()
+            .await
+            .map_err(|e| {
+                LOGGER.error(&format!("Failed to list validation schemas: {e}"));
+                e
+            })?;
         LOGGER.info(&format!("Found {} validation schemas", result.len()));
         Ok(result)
     }
@@ -83,7 +89,9 @@ where
         &self,
         id: u32,
     ) -> Result<PipelineNewValidateSchema, IoTBeeError> {
-        LOGGER.debug(&format!("get_validation_schema_by_id use case called for id={id}"));
+        LOGGER.debug(&format!(
+            "get_validation_schema_by_id use case called for id={id}"
+        ));
 
         let id_to_search = DataStoreId::new(id)?;
         let result = self
@@ -110,7 +118,9 @@ where
         schema_id: u32,
         new_name: &str,
     ) -> Result<(), IoTBeeError> {
-        LOGGER.debug(&format!("update_validation_schema_name use case called for id={schema_id}"));
+        LOGGER.debug(&format!(
+            "update_validation_schema_name use case called for id={schema_id}"
+        ));
 
         let id_to_search = DataStoreId::new(schema_id)?;
         let result = self
@@ -118,11 +128,15 @@ where
             .get_pipeline_validation_schema(&id_to_search)
             .await
             .map_err(|e| {
-                LOGGER.error(&format!("Failed to fetch schema id={schema_id} before name update: {e}"));
+                LOGGER.error(&format!(
+                    "Failed to fetch schema id={schema_id} before name update: {e}"
+                ));
                 e
             })?;
         if result.is_none() {
-            LOGGER.warn(&format!("Validation schema id={schema_id} not found for name update"));
+            LOGGER.warn(&format!(
+                "Validation schema id={schema_id} not found for name update"
+            ));
             return Err(PipelinePersistenceError::ValidationSchemaNotFound {
                 schema_id: schema_id.to_string(),
             }
@@ -132,11 +146,15 @@ where
             .update_pipeline_validation_schema_name(&id_to_search, new_name)
             .await
             .map_err(|e| {
-                LOGGER.error(&format!("Failed to update schema name for id={schema_id}: {e}"));
+                LOGGER.error(&format!(
+                    "Failed to update schema name for id={schema_id}: {e}"
+                ));
                 e
             })?;
 
-        LOGGER.info(&format!("Validation schema id={schema_id} name updated to '{new_name}'"));
+        LOGGER.info(&format!(
+            "Validation schema id={schema_id} name updated to '{new_name}'"
+        ));
         Ok(())
     }
 
@@ -145,7 +163,9 @@ where
         schema_id: u32,
         new_schema: &str,
     ) -> Result<(), IoTBeeError> {
-        LOGGER.debug(&format!("update_validation_schema use case called for id={schema_id}"));
+        LOGGER.debug(&format!(
+            "update_validation_schema use case called for id={schema_id}"
+        ));
 
         let id_to_search = DataStoreId::new(schema_id)?;
         let result = self
@@ -153,11 +173,15 @@ where
             .get_pipeline_validation_schema(&id_to_search)
             .await
             .map_err(|e| {
-                LOGGER.error(&format!("Failed to fetch schema id={schema_id} before json update: {e}"));
+                LOGGER.error(&format!(
+                    "Failed to fetch schema id={schema_id} before json update: {e}"
+                ));
                 e
             })?;
         if result.is_none() {
-            LOGGER.warn(&format!("Validation schema id={schema_id} not found for json update"));
+            LOGGER.warn(&format!(
+                "Validation schema id={schema_id} not found for json update"
+            ));
             return Err(IoTBeeError::from(
                 PipelinePersistenceError::ValidationSchemaNotFound {
                     schema_id: schema_id.to_string(),
@@ -169,11 +193,15 @@ where
             .update_pipeline_validation_schema(&id_to_search, &new_schema)
             .await
             .map_err(|e| {
-                LOGGER.error(&format!("Failed to update schema json for id={schema_id}: {e}"));
+                LOGGER.error(&format!(
+                    "Failed to update schema json for id={schema_id}: {e}"
+                ));
                 e
             })?;
 
-        LOGGER.info(&format!("Validation schema id={schema_id} JSON updated successfully"));
+        LOGGER.info(&format!(
+            "Validation schema id={schema_id} JSON updated successfully"
+        ));
         //TODO: Realizar el reinicio de los pipelines que utilizan este schema de validación, para que tomen el nuevo schema actualizado
         Ok(())
     }

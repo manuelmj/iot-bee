@@ -1,12 +1,12 @@
+use crate::domain::entities::pipeline_data::{PipelineDataInputModel, PipelineDataOutputModel};
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 use crate::domain::outbound::pipeline_persistence::PipelineControllerRepository;
-use crate::domain::entities::pipeline_data::{PipelineDataInputModel, PipelineDataOutputModel};
 use crate::domain::value_objects::pipelines_values::DataStoreId;
-use crate::infrastructure::persistence::models::PipelineRowFlat;
 use crate::infrastructure::persistence::connection::InternalDataBase;
+use crate::infrastructure::persistence::models::PipelineRowFlat;
 use async_trait::async_trait;
-use sqlx::Error as SqlxError;
 use chrono::Utc;
+use sqlx::Error as SqlxError;
 use std::sync::Arc;
 
 pub struct PipelineDataRepository {
@@ -22,7 +22,6 @@ impl PipelineDataRepository {
         &self.pipeline_store_repository
     }
 }
-
 
 #[async_trait]
 impl PipelineControllerRepository for PipelineDataRepository {
@@ -52,14 +51,13 @@ impl PipelineControllerRepository for PipelineDataRepository {
                 _ => PipelinePersistenceError::SaveFailed { reason: e.to_string() },
             }
         })?;
-        
+
         Ok(())
     }
 
-
     async fn get_pipeline(&self) -> Result<Vec<PipelineDataOutputModel>, IoTBeeError> {
         let pool = self.data_base_connection().pool();
-        let rows_result  = sqlx::query_as::<_, PipelineRowFlat>(
+        let rows_result = sqlx::query_as::<_, PipelineRowFlat>(
             r#"
             SELECT 
                 p.id,
@@ -87,22 +85,28 @@ impl PipelineControllerRepository for PipelineDataRepository {
             JOIN databases d ON p.db_id = d.id
             JOIN data_sources ds ON p.data_source_id = ds.id
             JOIN validation_schemas vs ON p.validation_schema_id = vs.id
-            "#
+            "#,
         )
         .fetch_all(pool)
         .await
-        .map_err(|e| 
-            IoTBeeError::from(PipelinePersistenceError::Database{ reason: e.to_string() }))?;
-        
-        
-        let result = rows_result.into_iter()
+        .map_err(|e| {
+            IoTBeeError::from(PipelinePersistenceError::Database {
+                reason: e.to_string(),
+            })
+        })?;
+
+        let result = rows_result
+            .into_iter()
             .map(|row| row.try_into())
             .collect::<Result<Vec<PipelineDataOutputModel>, _>>()?;
 
         Ok(result)
     }
 
-    async fn get_pipeline_by_id(&self, pipeline_id: &DataStoreId) -> Result<Option<PipelineDataOutputModel>, IoTBeeError> {
+    async fn get_pipeline_by_id(
+        &self,
+        pipeline_id: &DataStoreId,
+    ) -> Result<Option<PipelineDataOutputModel>, IoTBeeError> {
         let pool = self.data_base_connection().pool();
         let row_result = sqlx::query_as::<_, PipelineRowFlat>(
             r#"
@@ -132,17 +136,18 @@ impl PipelineControllerRepository for PipelineDataRepository {
             JOIN databases d ON p.db_id = d.id
             JOIN data_sources ds ON p.data_source_id = ds.id
             JOIN validation_schemas vs ON p.validation_schema_id = vs.id
-            "#
+            "#,
         )
         .bind(pipeline_id.id())
         .fetch_optional(pool)
         .await
-        .map_err(|e| 
-            IoTBeeError::from(PipelinePersistenceError::Database{ reason: e.to_string() }))?;
-        
-        let result = row_result
-            .map(|row| row.try_into())
-            .transpose()?;
+        .map_err(|e| {
+            IoTBeeError::from(PipelinePersistenceError::Database {
+                reason: e.to_string(),
+            })
+        })?;
+
+        let result = row_result.map(|row| row.try_into()).transpose()?;
 
         Ok(result)
     }

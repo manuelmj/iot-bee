@@ -7,8 +7,8 @@ use crate::domain::outbound::pipeline_persistence::PipelineDataSourceRepository;
 //infrastructure imports
 use crate::domain::error::PipelinePersistenceError;
 use crate::domain::value_objects::pipelines_values::{DataStoreId, FieldName};
-use crate::infrastructure::persistence::models::DataSourceRow;
 use crate::infrastructure::persistence::connection::InternalDataBase;
+use crate::infrastructure::persistence::models::DataSourceRow;
 
 use async_trait::async_trait;
 use chrono::Utc;
@@ -28,9 +28,6 @@ impl DataSourceRepository {
         &self.pipeline_store_repository
     }
 }
-
-
-
 
 #[async_trait]
 

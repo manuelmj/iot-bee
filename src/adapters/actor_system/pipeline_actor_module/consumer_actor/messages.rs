@@ -31,7 +31,7 @@ pub enum ConsumerActorAction {
     /// Consultar el estado actual del actor.
     GetState,
     /// El actor cerro el canal de consumo inesperadamente (ej: error de conexión) y está detenido.
-    ChannelDied, 
+    ChannelDied,
 }
 
 pub struct ConsumerActorActionMessage(ConsumerActorAction);

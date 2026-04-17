@@ -1,13 +1,11 @@
+use crate::domain::entities::pipeline_data::{PipelineDataInputModel, PipelineDataOutputModel};
+use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::Validate;
-use chrono::{DateTime, Utc};
-use crate::domain::entities::pipeline_data::{PipelineDataInputModel, PipelineDataOutputModel};
-use crate::domain::error::{IoTBeeError,PipelinePersistenceError};
-
 
 pub type PipelineDataId = u32;
-
 
 #[derive(Deserialize, Validate, ToSchema)]
 pub struct CreatePipelineDataRequest {
@@ -41,44 +39,43 @@ impl TryFrom<CreatePipelineDataRequest> for PipelineDataInputModel {
 
     fn try_from(request: CreatePipelineDataRequest) -> Result<Self, Self::Error> {
         request
-        .validate()
-        .map_err(|e| PipelinePersistenceError::InvalidData { reason: e.to_string() })?;
-        
+            .validate()
+            .map_err(|e| PipelinePersistenceError::InvalidData {
+                reason: e.to_string(),
+            })?;
+
         Ok(PipelineDataInputModel::new(
             request.name,
             request.pipeline_group_id,
             request.data_store_id,
-            request.data_source_id, // Placeholder for data_source_id
+            request.data_source_id,       // Placeholder for data_source_id
             request.validation_schema_id, // Placeholder for validation_schema_id
             request.pipeline_replication, // Placeholder for pipeline_replication
         )?)
     }
 }
 
-
 #[derive(Serialize, ToSchema, Validate)]
-pub struct GroupInfo{
+pub struct GroupInfo {
     id: u32,
     name: String,
 }
 #[derive(Serialize, ToSchema, Validate)]
-pub struct DataStoreInfo{
+pub struct DataStoreInfo {
     id: u32,
     name: String,
 }
 
 #[derive(Serialize, ToSchema, Validate)]
-pub struct DataSourceInfo{
+pub struct DataSourceInfo {
     id: u32,
     name: String,
 }
 #[derive(Serialize, ToSchema, Validate)]
-pub struct DataValidationSchemaInfo{
+pub struct DataValidationSchemaInfo {
     id: u32,
     name: String,
 }
-
-
 
 #[derive(Serialize, ToSchema, Validate)]
 pub struct PipelineDataResponse {

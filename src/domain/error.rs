@@ -20,6 +20,10 @@ pub enum PipelineLifecycleError {
     AlreadyStopped { pipeline_id: String },
     #[error("Lifecycle operation failed: {reason}")]
     OperationFailed { reason: String },
+    #[error("Pipeline with id {pipeline_id} not found")]
+    NotFound { pipeline_id: String },
+    #[error("Internal communication error: {reason}")]
+    InternalCommunication { reason: String },
 }
 
 #[derive(Error, Debug)]

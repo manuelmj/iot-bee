@@ -8,8 +8,8 @@ use crate::domain::value_objects::pipelines_values::DataStoreId;
 use crate::infrastructure::persistence::models::{ValidationSchemaRow, ValidationSchemaRowWhitId};
 use async_trait::async_trait;
 
-use sqlx::Error as SqlxError;
 use crate::infrastructure::persistence::connection::InternalDataBase;
+use sqlx::Error as SqlxError;
 use std::sync::Arc;
 pub struct ValidationSchemaRepository {
     pipeline_store_repository: Arc<InternalDataBase>,
@@ -24,8 +24,6 @@ impl ValidationSchemaRepository {
         &self.pipeline_store_repository
     }
 }
-
-
 
 #[async_trait]
 impl PipelineValidationSchemaRepository for ValidationSchemaRepository {

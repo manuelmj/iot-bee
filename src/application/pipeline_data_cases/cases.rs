@@ -1,6 +1,6 @@
-use crate::domain::error::{IoTBeeError,PipelinePersistenceError};
-use crate::domain::outbound::pipeline_persistence::PipelineControllerRepository;
 use crate::domain::entities::pipeline_data::{PipelineDataInputModel, PipelineDataOutputModel};
+use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
+use crate::domain::outbound::pipeline_persistence::PipelineControllerRepository;
 use crate::domain::value_objects::pipelines_values::DataStoreId;
 use crate::logging::AppLogger;
 use async_trait::async_trait;
@@ -12,13 +12,16 @@ static LOGGER: AppLogger = AppLogger::new("iot_bee::application::pipeline_data_c
 pub trait PipelineDataUseCases {
     async fn create_pipeline(&self, pipeline: &PipelineDataInputModel) -> Result<(), IoTBeeError>;
     async fn get_pipeline(&self) -> Result<Vec<PipelineDataOutputModel>, IoTBeeError>;
-    async fn get_pipeline_by_id(&self, pipeline_id: &u32) -> Result<PipelineDataOutputModel, IoTBeeError>;
+    async fn get_pipeline_by_id(
+        &self,
+        pipeline_id: &u32,
+    ) -> Result<PipelineDataOutputModel, IoTBeeError>;
 }
 
 pub struct PipelineDataUseCasesImpl<T: PipelineControllerRepository + Send + Sync> {
     repository: Arc<T>,
 }
-impl <T: PipelineControllerRepository + Send + Sync> PipelineDataUseCasesImpl<T> {
+impl<T: PipelineControllerRepository + Send + Sync> PipelineDataUseCasesImpl<T> {
     pub fn new(repository: Arc<T>) -> Self {
         Self { repository }
     }
@@ -45,15 +48,23 @@ where
         LOGGER.info(&format!("Found {} pipelines", result.len()));
         Ok(result)
     }
-    async fn get_pipeline_by_id(&self, pipeline_id: &u32) -> Result<PipelineDataOutputModel, IoTBeeError> {
-        LOGGER.debug(&format!("get_pipeline_by_id use case called for id={pipeline_id}"));
+    async fn get_pipeline_by_id(
+        &self,
+        pipeline_id: &u32,
+    ) -> Result<PipelineDataOutputModel, IoTBeeError> {
+        LOGGER.debug(&format!(
+            "get_pipeline_by_id use case called for id={pipeline_id}"
+        ));
         let pipeline_id = DataStoreId::new(*pipeline_id)?;
         let result = self
             .repository
             .get_pipeline_by_id(&pipeline_id)
             .await
             .map_err(|e| {
-                LOGGER.error(&format!("Failed to get pipeline id={}: {e}", pipeline_id.id()));
+                LOGGER.error(&format!(
+                    "Failed to get pipeline id={}: {e}",
+                    pipeline_id.id()
+                ));
                 e
             })?;
 
@@ -61,7 +72,10 @@ where
             Some(pipeline) => Ok(pipeline),
             None => {
                 LOGGER.warn(&format!("Pipeline id={} not found", pipeline_id.id()));
-                Err(PipelinePersistenceError::IdNotFound { id: pipeline_id.id() }.into())
+                Err(PipelinePersistenceError::IdNotFound {
+                    id: pipeline_id.id(),
+                }
+                .into())
             }
         }
     }

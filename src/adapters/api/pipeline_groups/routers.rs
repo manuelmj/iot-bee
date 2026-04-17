@@ -39,7 +39,9 @@ pub async fn create_pipeline_group(
 
     let group_data: CreateGroupRequest = body.into_inner();
     group_data.validate().map_err(|e| {
-        let err = PipelinePersistenceError::InvalidData { reason: e.to_string() };
+        let err = PipelinePersistenceError::InvalidData {
+            reason: e.to_string(),
+        };
         LOGGER.error(&format!("Validation error creating pipeline group: {e}"));
         err
     })?;
@@ -98,13 +100,20 @@ pub async fn get_pipeline_group_by_id(
     id: web::Path<u32>,
 ) -> Result<HttpResponse, IoTBeeError> {
     let group_id = id.into_inner();
-    LOGGER.debug(&format!("get_pipeline_group_by_id handler called for id={group_id}"));
+    LOGGER.debug(&format!(
+        "get_pipeline_group_by_id handler called for id={group_id}"
+    ));
 
-    let group = use_case.get_pipeline_group_by_id(&group_id).await.map_err(|e| {
-        LOGGER.error(&format!("Failed to get pipeline group id={group_id}: {e}"));
-        e
-    })?;
+    let group = use_case
+        .get_pipeline_group_by_id(&group_id)
+        .await
+        .map_err(|e| {
+            LOGGER.error(&format!("Failed to get pipeline group id={group_id}: {e}"));
+            e
+        })?;
     let response = GroupResponse::try_from(group)?;
-    LOGGER.info(&format!("Pipeline group id={group_id} retrieved successfully"));
+    LOGGER.info(&format!(
+        "Pipeline group id={group_id} retrieved successfully"
+    ));
     Ok(HttpResponse::Ok().json(response))
 }

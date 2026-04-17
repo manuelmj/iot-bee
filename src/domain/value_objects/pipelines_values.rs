@@ -125,8 +125,6 @@ impl ReplicationFactor {
     }
 }
 
-
-
 pub struct PipelineDataStoreModel(String);
 impl PipelineDataStoreModel {
     pub fn new(data_store: impl Into<String>) -> Result<Self, IoTBeeError> {

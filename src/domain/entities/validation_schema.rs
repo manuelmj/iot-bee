@@ -1,7 +1,5 @@
 use crate::domain::error::IoTBeeError;
-use crate::domain::value_objects::pipelines_values::{
-    DataStoreId, FieldName, PipelineSchemaModel,
-};
+use crate::domain::value_objects::pipelines_values::{DataStoreId, FieldName, PipelineSchemaModel};
 use chrono::{DateTime, Utc};
 
 /// Modelo de salida para un esquema de validación existente en la base de datos.

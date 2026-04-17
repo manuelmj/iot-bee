@@ -1,16 +1,19 @@
-use crate::adapters::api::data_store::models::{CreateDataStoreRequest, DataStoreResponse,DataStoreId};
-use crate::domain::entities::data_store::{PipelineDataStoreInputModel, PipelineDataStoreOutputModel};
-use crate::domain::error::IoTBeeError;
+use crate::adapters::api::data_store::models::{
+    CreateDataStoreRequest, DataStoreId, DataStoreResponse,
+};
 use crate::application::data_store_cases::cases::DataStoreUseCases;
+use crate::domain::entities::data_store::{
+    PipelineDataStoreInputModel, PipelineDataStoreOutputModel,
+};
+use crate::domain::error::IoTBeeError;
 use crate::logging::AppLogger;
 
 use crate::adapters::api::error::ErrorResponse;
-use actix_web::{web, HttpResponse,post,get};
+use actix_web::{HttpResponse, get, post, web};
 
 type UseCase = dyn DataStoreUseCases + Send + Sync;
 
 static LOGGER: AppLogger = AppLogger::new("iot_bee::adapters::api::data_store::routers");
-
 
 pub fn data_store_scope(use_case: web::Data<UseCase>) -> actix_web::Scope {
     web::scope("/data-stores")
@@ -72,14 +75,13 @@ pub async fn get_data_store(
     tag = "Data Stores"
 )]
 #[get("")]
-pub async fn list_data_stores(
-    use_case: web::Data<UseCase>,
-) -> Result<HttpResponse, IoTBeeError> {
+pub async fn list_data_stores(use_case: web::Data<UseCase>) -> Result<HttpResponse, IoTBeeError> {
     LOGGER.debug("list data stores handler called");
     let data_stores: Vec<PipelineDataStoreOutputModel> = use_case.get_data_store().await?;
-    let response: Vec<DataStoreResponse> = data_stores.into_iter()
-    .map(|data_store|data_store.try_into())
-    .collect::<Result<Vec<DataStoreResponse>, IoTBeeError>>()?; 
+    let response: Vec<DataStoreResponse> = data_stores
+        .into_iter()
+        .map(|data_store| data_store.try_into())
+        .collect::<Result<Vec<DataStoreResponse>, IoTBeeError>>()?;
 
     Ok(HttpResponse::Ok().json(response))
 }

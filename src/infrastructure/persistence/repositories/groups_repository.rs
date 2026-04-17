@@ -2,8 +2,8 @@ use crate::domain::entities::pipeline_groups::{PipelineGroupInputModel, Pipeline
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 use crate::domain::outbound::pipeline_persistence::PipelineGroupRepository;
 use crate::domain::value_objects::pipelines_values::DataStoreId;
-use crate::infrastructure::persistence::models::PipelineGroupRow;
 use crate::infrastructure::persistence::connection::InternalDataBase;
+use crate::infrastructure::persistence::models::PipelineGroupRow;
 
 use async_trait::async_trait;
 use chrono::Utc;
@@ -22,8 +22,6 @@ impl GroupRepository {
         &self.pipeline_store_repository
     }
 }
-
-
 
 #[async_trait]
 impl PipelineGroupRepository for GroupRepository {

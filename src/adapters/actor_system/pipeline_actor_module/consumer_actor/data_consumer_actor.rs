@@ -2,25 +2,39 @@ use actix::prelude::*;
 use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
 
-use crate::domain::outbound::data_source::DataSource;
-use crate::domain::entities::data_consumer_types::DataConsumerRawType;
 use crate::adapters::actor_system::pipeline_actor_module::consumer_actor::messages::{
     ConsumerActorActionMessage, ConsumerActorState,
 };
+use crate::domain::entities::data_consumer_types::DataConsumerRawType;
+use crate::domain::outbound::data_source::DataSource;
+use crate::adapters::actor_system::pipeline_actor_module::general_ports::SendDataToProcessor;
+
 use crate::logging::AppLogger;
+static LOGGER: AppLogger = AppLogger::new(
+    "iot_bee::adapters::actor_system::pipeline_actor_module::consumer_actor::DataConsumerActor",
+);
 
-static LOGGER: AppLogger = AppLogger::new("iot_bee::adapters::actor_system::pipeline_actor_module::consumer_actor::DataConsumerActor");
 
-pub struct DataConsumerActor<T: DataSource + Send + Sync + 'static> {
+
+pub struct DataConsumerActor<
+    T: DataSource + Send + Sync + 'static,
+    U: SendDataToProcessor + Send + Sync + 'static,
+> {
     pub data_source: Arc<T>,
+    pub data_processor: Arc<U>,
     pub state: ConsumerActorState,
     pub sender: Option<Sender<DataConsumerRawType>>,
 }
 
-impl<T: DataSource + Send + Sync + 'static> DataConsumerActor<T> {
-    pub fn new(data_source: Arc<T>) -> Self {
+impl<T, U> DataConsumerActor<T, U>
+where
+    T: DataSource + Send + Sync + 'static,
+    U: SendDataToProcessor + Send + Sync + 'static,
+{
+    pub fn new(data_source: Arc<T>, data_processor: Arc<U>) -> Self {
         DataConsumerActor {
             data_source,
+            data_processor,
             state: ConsumerActorState::Idle,
             sender: None,
         }
@@ -28,24 +42,38 @@ impl<T: DataSource + Send + Sync + 'static> DataConsumerActor<T> {
     pub fn data_source(&self) -> Arc<T> {
         Arc::clone(&self.data_source)
     }
+    pub fn data_processor(&self) -> Arc<U> {
+        Arc::clone(&self.data_processor)
+    }
 }
 
-impl<T: DataSource + Send + Sync + 'static> Actor for DataConsumerActor<T> {
+impl<T, U> Actor for DataConsumerActor<T, U>
+where
+    T: DataSource + Send + Sync + 'static,
+    U: SendDataToProcessor + Send + Sync + 'static,
+{
     type Context = Context<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
+        LOGGER.info("DataConsumerActor started, sending StartConsuming message to self...");
+        ctx.address()
+            .do_send(ConsumerActorActionMessage::start_consuming());
         LOGGER.info("DataConsumerActor started, initiating data consumption...");
-        ctx.address().do_send(ConsumerActorActionMessage::start_consuming());
     }
-    fn stopped(&mut self, ctx: &mut Self::Context) {
+    fn stopped(&mut self, _ctx: &mut Self::Context) {
         LOGGER.info("DataConsumerActor stopped.");
     }
 }
 
-impl<T: DataSource + Send + Sync + 'static> Supervised for DataConsumerActor<T> {
-    fn restarting(&mut self, ctx: &mut Self::Context) {
+impl<T, U> Supervised for DataConsumerActor<T, U>
+where
+    T: DataSource + Send + Sync + 'static,
+    U: SendDataToProcessor + Send + Sync + 'static,
+{
+    fn restarting(&mut self, _ctx: &mut Self::Context) {
         LOGGER.warn("DataConsumerActor is restarting...");
         self.state = ConsumerActorState::Idle;
         self.sender = None;
     }
 }
+

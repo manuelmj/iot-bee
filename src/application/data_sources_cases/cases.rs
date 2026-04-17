@@ -54,16 +54,21 @@ where
         data_source: &PipelineDataSourceInputModel,
     ) -> Result<(), IoTBeeError> {
         LOGGER.debug("create_data_source use case called");
-        self.repository.save_pipeline_data_source(data_source).await.map_err(|e| {
-            LOGGER.error(&format!("Failed to save data source: {e}"));
-            e
-        })
+        self.repository
+            .save_pipeline_data_source(data_source)
+            .await
+            .map_err(|e| {
+                LOGGER.error(&format!("Failed to save data source: {e}"));
+                e
+            })
     }
     async fn get_data_source(
         &self,
         data_source_id: &u32,
     ) -> Result<PipelineDataSourceOutputModel, IoTBeeError> {
-        LOGGER.debug(&format!("get_data_source use case called for id={data_source_id}"));
+        LOGGER.debug(&format!(
+            "get_data_source use case called for id={data_source_id}"
+        ));
 
         let data_source_id = DataStoreId::new(*data_source_id)?;
         let result = self
@@ -71,7 +76,10 @@ where
             .get_pipeline_data_source(&data_source_id)
             .await
             .map_err(|e| {
-                LOGGER.error(&format!("Failed to get data source id={}: {e}", data_source_id.id()));
+                LOGGER.error(&format!(
+                    "Failed to get data source id={}: {e}",
+                    data_source_id.id()
+                ));
                 e
             })?;
 
@@ -87,10 +95,14 @@ where
     }
     async fn list_data_sources(&self) -> Result<Vec<PipelineDataSourceOutputModel>, IoTBeeError> {
         LOGGER.debug("list_data_sources use case called");
-        let result = self.repository.list_pipeline_data_source().await.map_err(|e| {
-            LOGGER.error(&format!("Failed to list data sources: {e}"));
-            e
-        })?;
+        let result = self
+            .repository
+            .list_pipeline_data_source()
+            .await
+            .map_err(|e| {
+                LOGGER.error(&format!("Failed to list data sources: {e}"));
+                e
+            })?;
         LOGGER.info(&format!("Found {} data sources", result.len()));
         Ok(result)
     }
@@ -100,17 +112,25 @@ where
         data_source_id: &u32,
         data: &PipelineDataSourceUpdateModel,
     ) -> Result<(), IoTBeeError> {
-        LOGGER.debug(&format!("update_data_source use case called for id={data_source_id}"));
+        LOGGER.debug(&format!(
+            "update_data_source use case called for id={data_source_id}"
+        ));
         let data_source_id = DataStoreId::new(*data_source_id)?;
         let update_result = self
             .repository
             .update_pipeline_data_source(&data_source_id, data)
             .await
             .map_err(|e| {
-                LOGGER.error(&format!("Failed to update data source id={}: {e}", data_source_id.id()));
+                LOGGER.error(&format!(
+                    "Failed to update data source id={}: {e}",
+                    data_source_id.id()
+                ));
                 e
             })?;
-        LOGGER.info(&format!("Data source id={} updated successfully", data_source_id.id()));
+        LOGGER.info(&format!(
+            "Data source id={} updated successfully",
+            data_source_id.id()
+        ));
         //TODO: Crear aca la logica de reiniciar los pipelines que usen esta data source,
         Ok(update_result)
     }
@@ -119,14 +139,19 @@ where
         data_source_id: &u32,
         new_name: &str,
     ) -> Result<(), IoTBeeError> {
-        LOGGER.debug(&format!("update_data_source_name use case called for id={data_source_id}"));
+        LOGGER.debug(&format!(
+            "update_data_source_name use case called for id={data_source_id}"
+        ));
         let data_source_id = DataStoreId::new(*data_source_id)?;
         let field_name = FieldName::new(new_name)?;
         self.repository
             .update_pipeline_data_source_name(&data_source_id, &field_name)
             .await
             .map_err(|e| {
-                LOGGER.error(&format!("Failed to update data source name id={}: {e}", data_source_id.id()));
+                LOGGER.error(&format!(
+                    "Failed to update data source name id={}: {e}",
+                    data_source_id.id()
+                ));
                 e
             })
     }

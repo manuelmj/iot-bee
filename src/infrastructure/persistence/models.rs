@@ -44,19 +44,17 @@ pub struct PipelineGroupRow {
     pub updated_at: String,
 }
 
-
 #[derive(FromRow)]
 pub struct DataStoreRow {
     pub id: u32,
     pub name: String,
     #[sqlx(rename = "type")]
     pub type_id: u32,
-    pub json_schema: String, 
+    pub json_schema: String,
     pub description: String,
     pub created_at: String,
     pub updated_at: String,
 }
-
 
 #[derive(FromRow)]
 pub struct PipelineRowFlat {

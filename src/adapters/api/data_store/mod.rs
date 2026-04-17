@@ -1,2 +1,2 @@
-pub mod routers;
 pub mod models;
+pub mod routers;

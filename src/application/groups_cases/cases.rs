@@ -44,12 +44,19 @@ where
         group_name: &str,
         group_description: &str,
     ) -> Result<(), IoTBeeError> {
-        LOGGER.debug(&format!("create_pipeline_group use case called for name='{group_name}'"));
+        LOGGER.debug(&format!(
+            "create_pipeline_group use case called for name='{group_name}'"
+        ));
         let group_input = PipelineGroupInputModel::new(group_name, group_description)?;
-        self.repository.save_pipeline_group(&group_input).await.map_err(|e| {
-            LOGGER.error(&format!("Failed to create pipeline group '{group_name}': {e}"));
-            e
-        })
+        self.repository
+            .save_pipeline_group(&group_input)
+            .await
+            .map_err(|e| {
+                LOGGER.error(&format!(
+                    "Failed to create pipeline group '{group_name}': {e}"
+                ));
+                e
+            })
     }
 
     async fn get_pipeline_groups(&self) -> Result<Vec<PipelineGroupOutputModel>, IoTBeeError> {
@@ -66,12 +73,21 @@ where
         &self,
         group_id: &u32,
     ) -> Result<PipelineGroupOutputModel, IoTBeeError> {
-        LOGGER.debug(&format!("get_pipeline_group_by_id use case called for id={group_id}"));
+        LOGGER.debug(&format!(
+            "get_pipeline_group_by_id use case called for id={group_id}"
+        ));
         let group_id = DataStoreId::new(*group_id)?;
-        let result = self.repository.get_pipeline_group_by_id(&group_id).await.map_err(|e| {
-            LOGGER.error(&format!("Failed to get pipeline group id={}: {e}", group_id.id()));
-            e
-        })?;
+        let result = self
+            .repository
+            .get_pipeline_group_by_id(&group_id)
+            .await
+            .map_err(|e| {
+                LOGGER.error(&format!(
+                    "Failed to get pipeline group id={}: {e}",
+                    group_id.id()
+                ));
+                e
+            })?;
 
         if let Some(group) = result {
             Ok(group)

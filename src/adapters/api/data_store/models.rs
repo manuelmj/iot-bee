@@ -1,9 +1,11 @@
+use crate::domain::entities::data_store::{
+    PipelineDataStoreInputModel, PipelineDataStoreOutputModel,
+};
+use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::Validate;
-use chrono::{DateTime, Utc};
-use crate::domain::entities::data_store::{PipelineDataStoreInputModel, PipelineDataStoreOutputModel};
-use crate::domain::error::{IoTBeeError,PipelinePersistenceError};
 
 pub type DataStoreId = u32;
 
@@ -28,9 +30,11 @@ impl TryFrom<CreateDataStoreRequest> for PipelineDataStoreInputModel {
 
     fn try_from(request: CreateDataStoreRequest) -> Result<Self, Self::Error> {
         request
-        .validate()
-        .map_err(|e| PipelinePersistenceError::InvalidData { reason: e.to_string() })?;
-        
+            .validate()
+            .map_err(|e| PipelinePersistenceError::InvalidData {
+                reason: e.to_string(),
+            })?;
+
         Ok(PipelineDataStoreInputModel::new(
             request.name,
             request.data_store_type_id,
@@ -71,11 +75,13 @@ impl TryFrom<PipelineDataStoreOutputModel> for DataStoreResponse {
             created_at: output_model.created_at(),
             updated_at: output_model.updated_at(),
         };
-        
+
         data_store_response
-        .validate()
-        .map_err(|e| PipelinePersistenceError::InvalidData { reason: e.to_string() })?;
-        
+            .validate()
+            .map_err(|e| PipelinePersistenceError::InvalidData {
+                reason: e.to_string(),
+            })?;
+
         Ok(data_store_response)
     }
 }

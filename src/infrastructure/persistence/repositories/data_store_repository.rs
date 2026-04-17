@@ -1,23 +1,24 @@
-
-
-use crate::domain::error::{IoTBeeError,PipelinePersistenceError};
-use crate::domain::entities::data_store::{PipelineDataStoreInputModel, PipelineDataStoreOutputModel};
-use crate::domain::value_objects::pipelines_values::DataStoreId;
+use crate::domain::entities::data_store::{
+    PipelineDataStoreInputModel, PipelineDataStoreOutputModel,
+};
+use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 use crate::domain::outbound::pipeline_persistence::PipelineDataStoreRepository;
-use crate::infrastructure::persistence::models::DataStoreRow;
+use crate::domain::value_objects::pipelines_values::DataStoreId;
 use crate::infrastructure::persistence::connection::InternalDataBase;
-use async_trait::async_trait;
-use sqlx::Error as SqlxError;
-use chrono::Utc;
-use std::sync::Arc;
+use crate::infrastructure::persistence::models::DataStoreRow;
 use crate::logging::AppLogger;
+use async_trait::async_trait;
+use chrono::Utc;
+use sqlx::Error as SqlxError;
+use std::sync::Arc;
 
-static LOGGER: AppLogger = AppLogger::new("iot_bee::infrastructure::persistence::repositories::data_store_repository");
+static LOGGER: AppLogger =
+    AppLogger::new("iot_bee::infrastructure::persistence::repositories::data_store_repository");
 
 pub struct DataStoreRepository {
     pipeline_store_repository: Arc<InternalDataBase>,
 }
-impl DataStoreRepository{
+impl DataStoreRepository {
     pub fn new(pipeline_store_repository: Arc<InternalDataBase>) -> Self {
         Self {
             pipeline_store_repository,
@@ -30,8 +31,11 @@ impl DataStoreRepository{
 
 #[async_trait]
 impl PipelineDataStoreRepository for DataStoreRepository {
-    async fn save_pipeline_data_store(&self, data_store: &PipelineDataStoreInputModel) -> Result<(), IoTBeeError> {
-        let pool = self.data_base_connection().pool(); 
+    async fn save_pipeline_data_store(
+        &self,
+        data_store: &PipelineDataStoreInputModel,
+    ) -> Result<(), IoTBeeError> {
+        let pool = self.data_base_connection().pool();
         sqlx::query(
             r#"
             INSERT INTO databases (name, type, json_schema, description, created_at, updated_at)
@@ -46,21 +50,31 @@ impl PipelineDataStoreRepository for DataStoreRepository {
         .bind(Utc::now().to_rfc3339())
         .execute(pool)
         .await
-        .map_err(|e| {
-            match e {
-                SqlxError::Database(db_error) if db_error.is_unique_violation() => {PipelinePersistenceError::ValidationSchemaNameExists { name: data_store.name().to_string() }},
-                SqlxError::Database(db_error) if db_error.is_foreign_key_violation() => {PipelinePersistenceError::InvalidData { reason: db_error.to_string() }},
-                _ => PipelinePersistenceError::SaveFailed { reason: e.to_string() },
+        .map_err(|e| match e {
+            SqlxError::Database(db_error) if db_error.is_unique_violation() => {
+                PipelinePersistenceError::ValidationSchemaNameExists {
+                    name: data_store.name().to_string(),
+                }
             }
+            SqlxError::Database(db_error) if db_error.is_foreign_key_violation() => {
+                PipelinePersistenceError::InvalidData {
+                    reason: db_error.to_string(),
+                }
+            }
+            _ => PipelinePersistenceError::SaveFailed {
+                reason: e.to_string(),
+            },
         })?;
 
         Ok(())
     }
 
-    async fn get_pipeline_data_store(&self) -> Result<Vec<PipelineDataStoreOutputModel>, IoTBeeError> {
+    async fn get_pipeline_data_store(
+        &self,
+    ) -> Result<Vec<PipelineDataStoreOutputModel>, IoTBeeError> {
         let pool = self.data_base_connection().pool();
         LOGGER.info("Fetching data stores from database...");
-        let rows_result  = sqlx::query_as::<_, DataStoreRow>(
+        let rows_result = sqlx::query_as::<_, DataStoreRow>(
             r#"
             SELECT id, name, type, json_schema, description, created_at, updated_at
             FROM databases
@@ -68,11 +82,14 @@ impl PipelineDataStoreRepository for DataStoreRepository {
         )
         .fetch_all(pool)
         .await
-        .map_err(|e| 
-            IoTBeeError::from(PipelinePersistenceError::Database{ reason: e.to_string() }))?;
-        
-        
-        let result = rows_result.into_iter()
+        .map_err(|e| {
+            IoTBeeError::from(PipelinePersistenceError::Database {
+                reason: e.to_string(),
+            })
+        })?;
+
+        let result = rows_result
+            .into_iter()
             .map(|row| row.try_into())
             .collect::<Result<Vec<PipelineDataStoreOutputModel>, IoTBeeError>>()?;
 
@@ -84,7 +101,10 @@ impl PipelineDataStoreRepository for DataStoreRepository {
         LOGGER.debug(&format!("Retrieved data stores: [{names}]"));
         Ok(result)
     }
-    async fn get_pipeline_data_store_by_id(&self, data_store_id: &DataStoreId) -> Result<Option<PipelineDataStoreOutputModel>, IoTBeeError> {
+    async fn get_pipeline_data_store_by_id(
+        &self,
+        data_store_id: &DataStoreId,
+    ) -> Result<Option<PipelineDataStoreOutputModel>, IoTBeeError> {
         let pool = self.data_base_connection().pool();
         let row = sqlx::query_as::<_, DataStoreRow>(
             r#"
@@ -96,8 +116,11 @@ impl PipelineDataStoreRepository for DataStoreRepository {
         .bind(data_store_id.id())
         .fetch_optional(pool)
         .await
-        .map_err(|e| 
-            IoTBeeError::from(PipelinePersistenceError::Database{ reason: e.to_string() }))?;
+        .map_err(|e| {
+            IoTBeeError::from(PipelinePersistenceError::Database {
+                reason: e.to_string(),
+            })
+        })?;
 
         if let Some(row) = row {
             let data_store: PipelineDataStoreOutputModel = row.try_into()?;

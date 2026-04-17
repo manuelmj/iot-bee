@@ -6,8 +6,8 @@ use async_trait::async_trait;
 
 use crate::infrastructure::persistence::models::ConnectionTypeRow;
 // use sqlx::Error as SqlxError;
-use std::sync::Arc;
 use crate::infrastructure::persistence::connection::InternalDataBase;
+use std::sync::Arc;
 pub struct ConnectionTypesRepository {
     pipeline_store_repository: Arc<InternalDataBase>,
 }
