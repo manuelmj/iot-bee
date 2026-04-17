@@ -10,6 +10,9 @@ use async_trait::async_trait;
 use sqlx::Error as SqlxError;
 use chrono::Utc;
 use std::sync::Arc;
+use crate::logging::AppLogger;
+
+static LOGGER: AppLogger = AppLogger::new("iot_bee::infrastructure::persistence::repositories::data_store_repository");
 
 pub struct DataStoreRepository {
     pipeline_store_repository: Arc<InternalDataBase>,
@@ -56,7 +59,7 @@ impl PipelineDataStoreRepository for DataStoreRepository {
 
     async fn get_pipeline_data_store(&self) -> Result<Vec<PipelineDataStoreOutputModel>, IoTBeeError> {
         let pool = self.data_base_connection().pool();
-        println!("Fetching data stores from database...");
+        LOGGER.info("Fetching data stores from database...");
         let rows_result  = sqlx::query_as::<_, DataStoreRow>(
             r#"
             SELECT id, name, type, json_schema, description, created_at, updated_at
@@ -72,8 +75,13 @@ impl PipelineDataStoreRepository for DataStoreRepository {
         let result = rows_result.into_iter()
             .map(|row| row.try_into())
             .collect::<Result<Vec<PipelineDataStoreOutputModel>, IoTBeeError>>()?;
-        
-        println!("Retrieved data stores: {:?}", result.iter().map(|ds| ds.name()).collect::<Vec<_>>());
+
+        let names = result
+            .iter()
+            .map(|ds| ds.name())
+            .collect::<Vec<_>>()
+            .join(", ");
+        LOGGER.debug(&format!("Retrieved data stores: [{names}]"));
         Ok(result)
     }
     async fn get_pipeline_data_store_by_id(&self, data_store_id: &DataStroreId) -> Result<Option<PipelineDataStoreOutputModel>, IoTBeeError> {

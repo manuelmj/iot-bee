@@ -5,8 +5,11 @@ use crate::domain::value_objects::pipelines_values::{DataStroreId, FieldName};
 
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 use crate::domain::outbound::pipeline_persistence::PipelineDataSourceRepository;
+use crate::logging::AppLogger;
 use async_trait::async_trait;
 use std::sync::Arc;
+
+static LOGGER: AppLogger = AppLogger::new("iot_bee::application::data_sources_cases::cases");
 
 #[async_trait]
 pub trait DataSourcesUseCases {
@@ -50,19 +53,30 @@ where
         &self,
         data_source: &PipelineDataSourceInputModel,
     ) -> Result<(), IoTBeeError> {
-        self.repository.save_pipeline_data_source(data_source).await
+        LOGGER.debug("create_data_source use case called");
+        self.repository.save_pipeline_data_source(data_source).await.map_err(|e| {
+            LOGGER.error(&format!("Failed to save data source: {e}"));
+            e
+        })
     }
     async fn get_data_source(
         &self,
         data_source_id: &u32,
     ) -> Result<PipelineDataSourceOutputModel, IoTBeeError> {
+        LOGGER.debug(&format!("get_data_source use case called for id={data_source_id}"));
+
         let data_source_id = DataStroreId::new(*data_source_id)?;
         let result = self
             .repository
             .get_pipeline_data_source(&data_source_id)
-            .await?;
+            .await
+            .map_err(|e| {
+                LOGGER.error(&format!("Failed to get data source id={}: {e}", data_source_id.id()));
+                e
+            })?;
 
         if result.is_none() {
+            LOGGER.warn(&format!("Data source id={} not found", data_source_id.id()));
             return Err(PipelinePersistenceError::IdNotFound {
                 id: data_source_id.id(),
             }
@@ -72,7 +86,13 @@ where
         Ok(result.unwrap())
     }
     async fn list_data_sources(&self) -> Result<Vec<PipelineDataSourceOutputModel>, IoTBeeError> {
-        self.repository.list_pipeline_data_source().await
+        LOGGER.debug("list_data_sources use case called");
+        let result = self.repository.list_pipeline_data_source().await.map_err(|e| {
+            LOGGER.error(&format!("Failed to list data sources: {e}"));
+            e
+        })?;
+        LOGGER.info(&format!("Found {} data sources", result.len()));
+        Ok(result)
     }
 
     async fn update_data_source(
@@ -80,11 +100,17 @@ where
         data_source_id: &u32,
         data: &PipelineDataSourceUpdateModel,
     ) -> Result<(), IoTBeeError> {
+        LOGGER.debug(&format!("update_data_source use case called for id={data_source_id}"));
         let data_source_id = DataStroreId::new(*data_source_id)?;
         let update_result = self
             .repository
             .update_pipeline_data_source(&data_source_id, data)
-            .await?;
+            .await
+            .map_err(|e| {
+                LOGGER.error(&format!("Failed to update data source id={}: {e}", data_source_id.id()));
+                e
+            })?;
+        LOGGER.info(&format!("Data source id={} updated successfully", data_source_id.id()));
         //TODO: Crear aca la logica de reiniciar los pipelines que usen esta data source,
         Ok(update_result)
     }
@@ -93,10 +119,15 @@ where
         data_source_id: &u32,
         new_name: &str,
     ) -> Result<(), IoTBeeError> {
+        LOGGER.debug(&format!("update_data_source_name use case called for id={data_source_id}"));
         let data_source_id = DataStroreId::new(*data_source_id)?;
         let field_name = FieldName::new(new_name)?;
         self.repository
             .update_pipeline_data_source_name(&data_source_id, &field_name)
             .await
+            .map_err(|e| {
+                LOGGER.error(&format!("Failed to update data source name id={}: {e}", data_source_id.id()));
+                e
+            })
     }
 }

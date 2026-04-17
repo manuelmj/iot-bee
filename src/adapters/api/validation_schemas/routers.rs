@@ -8,10 +8,13 @@ use crate::adapters::api::validation_schemas::models::{
 };
 use crate::application::validation_schemas_cases::cases::SchemaValidationUseCases;
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
+use crate::logging::AppLogger;
 use actix_web::{HttpResponse, delete, get, post, put, web};
 use validator::Validate;
 
 type UseCase = dyn SchemaValidationUseCases + Send + Sync;
+
+static LOGGER: AppLogger = AppLogger::new("iot_bee::adapters::api::validation_schemas::routers");
 
 pub fn validation_schemas_scope(use_case: web::Data<UseCase>) -> actix_web::Scope {
     web::scope("/validation-schemas")
@@ -40,12 +43,22 @@ pub async fn create_validation_schema(
     use_case: web::Data<UseCase>,
     body: web::Json<CreateValidationSchemaRequest>,
 ) -> Result<HttpResponse, IoTBeeError> {
+    LOGGER.debug("create_validation_schema handler called");
+
     let schema_data: CreateValidationSchemaRequest = body.into_inner();
-    schema_data.validate_values()?;
+    schema_data.validate_values().map_err(|e| {
+        LOGGER.error(&format!("Validation error creating schema: {e}"));
+        e
+    })?;
     use_case
         .create_validation_schema(&schema_data.name, &schema_data.json_schema)
-        .await?;
+        .await
+        .map_err(|e| {
+            LOGGER.error(&format!("Failed to create validation schema: {e}"));
+            e
+        })?;
 
+    LOGGER.info("Validation schema created successfully");
     Ok(HttpResponse::Created().finish())
 }
 
@@ -67,8 +80,14 @@ pub async fn get_validation_schema(
     id_path: web::Path<SchemaId>,
 ) -> Result<HttpResponse, IoTBeeError> {
     let id = id_path.into_inner();
-    let result = use_case.get_validation_schema_by_id(id).await?;
+    LOGGER.debug(&format!("get_validation_schema handler called for id={id}"));
+
+    let result = use_case.get_validation_schema_by_id(id).await.map_err(|e| {
+        LOGGER.error(&format!("Failed to get validation schema id={id}: {e}"));
+        e
+    })?;
     let response: ValidationSchemaByIdResponse = result.into();
+    LOGGER.info(&format!("Validation schema id={id} retrieved successfully"));
     Ok(HttpResponse::Ok().json(response))
 }
 
@@ -84,13 +103,20 @@ pub async fn get_validation_schema(
 pub async fn list_validation_schemas(
     _use_case: web::Data<UseCase>,
 ) -> Result<HttpResponse, IoTBeeError> {
+    LOGGER.debug("list_validation_schemas handler called");
+
     let result: Vec<ValidationSchemaResponse> = _use_case
         .get_validation_schema()
-        .await?
+        .await
+        .map_err(|e| {
+            LOGGER.error(&format!("Failed to list validation schemas: {e}"));
+            e
+        })?
         .into_iter()
         .map(ValidationSchemaResponse::from)
         .collect();
 
+    LOGGER.info(&format!("Returning {} validation schemas", result.len()));
     Ok(HttpResponse::Ok().json(result))
 }
 
@@ -115,17 +141,24 @@ pub async fn update_validation_schema(
     body: web::Json<UpdateValidationSchemaRequestName>,
 ) -> Result<HttpResponse, IoTBeeError> {
     let id = id_path.into_inner();
+    LOGGER.debug(&format!("update_validation_schema (name) handler called for id={id}"));
+
     let schema_data: UpdateValidationSchemaRequestName = body.into_inner();
-    schema_data
-        .validate()
-        .map_err(|e| PipelinePersistenceError::InvalidData {
-            reason: e.to_string(),
-        })?;
+    schema_data.validate().map_err(|e| {
+        let err = PipelinePersistenceError::InvalidData { reason: e.to_string() };
+        LOGGER.error(&format!("Validation error updating schema name id={id}: {e}"));
+        err
+    })?;
 
     use_case
         .update_validation_schema_name(id as u32, &schema_data.name)
-        .await?;
+        .await
+        .map_err(|e| {
+            LOGGER.error(&format!("Failed to update schema name id={id}: {e}"));
+            e
+        })?;
 
+    LOGGER.info(&format!("Validation schema id={id} name updated successfully"));
     Ok(HttpResponse::Ok().finish())
 }
 
@@ -150,11 +183,21 @@ pub async fn update_validation_schema_json(
     body: web::Json<UpdateValidationSchemaRequestJson>,
 ) -> Result<HttpResponse, IoTBeeError> {
     let id = id_path.into_inner();
+    LOGGER.debug(&format!("update_validation_schema_json handler called for id={id}"));
+
     let schema_data: UpdateValidationSchemaRequestJson = body.into_inner();
-    schema_data.validate_values()?;
+    schema_data.validate_values().map_err(|e| {
+        LOGGER.error(&format!("Validation error updating schema json id={id}: {e}"));
+        e
+    })?;
     use_case
         .update_validation_schema(id as u32, schema_data.json_schema())
-        .await?;
+        .await
+        .map_err(|e| {
+            LOGGER.error(&format!("Failed to update schema json id={id}: {e}"));
+            e
+        })?;
+    LOGGER.info(&format!("Validation schema id={id} JSON updated successfully"));
     Ok(HttpResponse::Ok().finish())
 }
 
@@ -175,6 +218,9 @@ pub async fn delete_validation_schema(
     _use_case: web::Data<UseCase>,
     _path: web::Path<SchemaId>,
 ) -> Result<HttpResponse, IoTBeeError> {
+    let id = _path.into_inner();
+    LOGGER.debug(&format!("delete_validation_schema handler called for id={id}"));
+    LOGGER.warn(&format!("delete_validation_schema id={id}: not yet implemented"));
     // TODO: llamar use_case.delete_pipeline_validation_schema()
     Ok(HttpResponse::NoContent().finish())
 }

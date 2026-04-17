@@ -2,8 +2,11 @@ use crate::domain::entities::pipeline_groups::{PipelineGroupInputModel, Pipeline
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 use crate::domain::outbound::pipeline_persistence::PipelineGroupRepository;
 use crate::domain::value_objects::pipelines_values::DataStroreId;
+use crate::logging::AppLogger;
 use async_trait::async_trait;
 use std::sync::Arc;
+
+static LOGGER: AppLogger = AppLogger::new("iot_bee::application::groups_cases::cases");
 
 #[async_trait]
 pub trait PipelineGroupUseCases {
@@ -41,24 +44,39 @@ where
         group_name: &str,
         group_description: &str,
     ) -> Result<(), IoTBeeError> {
+        LOGGER.debug(&format!("create_pipeline_group use case called for name='{group_name}'"));
         let group_input = PipelineGroupInputModel::new(group_name, group_description)?;
-        self.repository.save_pipeline_group(&group_input).await
+        self.repository.save_pipeline_group(&group_input).await.map_err(|e| {
+            LOGGER.error(&format!("Failed to create pipeline group '{group_name}': {e}"));
+            e
+        })
     }
 
     async fn get_pipeline_groups(&self) -> Result<Vec<PipelineGroupOutputModel>, IoTBeeError> {
-        self.repository.get_pipeline_group().await
+        LOGGER.debug("get_pipeline_groups use case called");
+        let result = self.repository.get_pipeline_group().await.map_err(|e| {
+            LOGGER.error(&format!("Failed to get pipeline groups: {e}"));
+            e
+        })?;
+        LOGGER.info(&format!("Found {} pipeline groups", result.len()));
+        Ok(result)
     }
 
     async fn get_pipeline_group_by_id(
         &self,
         group_id: &u32,
     ) -> Result<PipelineGroupOutputModel, IoTBeeError> {
+        LOGGER.debug(&format!("get_pipeline_group_by_id use case called for id={group_id}"));
         let group_id = DataStroreId::new(*group_id)?;
-        let result = self.repository.get_pipeline_group_by_id(&group_id).await?;
+        let result = self.repository.get_pipeline_group_by_id(&group_id).await.map_err(|e| {
+            LOGGER.error(&format!("Failed to get pipeline group id={}: {e}", group_id.id()));
+            e
+        })?;
 
         if let Some(group) = result {
             Ok(group)
         } else {
+            LOGGER.warn(&format!("Pipeline group id={} not found", group_id.id()));
             Err(PipelinePersistenceError::IdNotFound { id: group_id.id() }.into())
         }
     }

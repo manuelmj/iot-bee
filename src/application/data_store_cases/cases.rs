@@ -3,8 +3,11 @@ use crate::domain::value_objects::pipelines_values::DataStroreId;
 use crate::domain::outbound::pipeline_persistence::PipelineDataStoreRepository;
 
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
+use crate::logging::AppLogger;
 use async_trait::async_trait;
 use std::sync::Arc;
+
+static LOGGER: AppLogger = AppLogger::new("iot_bee::application::data_store_cases::cases");
 
 #[async_trait]
 pub trait DataStoreUseCases{
@@ -33,7 +36,7 @@ where
         self.repository.save_pipeline_data_store(data_store).await
     }
     async fn get_data_store(&self) -> Result<Vec<PipelineDataStoreOutputModel>, IoTBeeError> {
-            println!("get data stores use case called");
+            LOGGER.debug("get data stores use case called");
             self
             .repository
             .get_pipeline_data_store()

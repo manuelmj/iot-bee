@@ -2,8 +2,11 @@ use crate::domain::error::{IoTBeeError,PipelinePersistenceError};
 use crate::domain::outbound::pipeline_persistence::PipelineControllerRepository;
 use crate::domain::entities::pipeline_data::{PipelineDataInputModel, PipelineDataOutputModel};
 use crate::domain::value_objects::pipelines_values::DataStroreId;
+use crate::logging::AppLogger;
 use async_trait::async_trait;
 use std::sync::Arc;
+
+static LOGGER: AppLogger = AppLogger::new("iot_bee::application::pipeline_data_cases::cases");
 
 #[async_trait]
 pub trait PipelineDataUseCases {
@@ -27,21 +30,39 @@ where
     T: PipelineControllerRepository + Send + Sync,
 {
     async fn create_pipeline(&self, pipeline: &PipelineDataInputModel) -> Result<(), IoTBeeError> {
-        self.repository.save_pipeline(pipeline).await
+        LOGGER.debug("create_pipeline use case called");
+        self.repository.save_pipeline(pipeline).await.map_err(|e| {
+            LOGGER.error(&format!("Failed to save pipeline: {e}"));
+            e
+        })
     }
     async fn get_pipeline(&self) -> Result<Vec<PipelineDataOutputModel>, IoTBeeError> {
-        self.repository.get_pipeline().await
+        LOGGER.debug("get_pipeline use case called");
+        let result = self.repository.get_pipeline().await.map_err(|e| {
+            LOGGER.error(&format!("Failed to get pipelines: {e}"));
+            e
+        })?;
+        LOGGER.info(&format!("Found {} pipelines", result.len()));
+        Ok(result)
     }
     async fn get_pipeline_by_id(&self, pipeline_id: &u32) -> Result<PipelineDataOutputModel, IoTBeeError> {
+        LOGGER.debug(&format!("get_pipeline_by_id use case called for id={pipeline_id}"));
         let pipeline_id = DataStroreId::new(*pipeline_id)?;
         let result = self
             .repository
             .get_pipeline_by_id(&pipeline_id)
-            .await?;
+            .await
+            .map_err(|e| {
+                LOGGER.error(&format!("Failed to get pipeline id={}: {e}", pipeline_id.id()));
+                e
+            })?;
 
         match result {
             Some(pipeline) => Ok(pipeline),
-            None => Err(PipelinePersistenceError::IdNotFound { id: pipeline_id.id() }.into()),
+            None => {
+                LOGGER.warn(&format!("Pipeline id={} not found", pipeline_id.id()));
+                Err(PipelinePersistenceError::IdNotFound { id: pipeline_id.id() }.into())
+            }
         }
     }
 }

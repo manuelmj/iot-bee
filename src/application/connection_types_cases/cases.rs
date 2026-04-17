@@ -1,8 +1,11 @@
 use crate::domain::entities::connection_type::ConnectionTypeModel;
 use crate::domain::error::IoTBeeError;
 use crate::domain::outbound::pipeline_persistence::PipelineConnectionTypeRepository;
+use crate::logging::AppLogger;
 use async_trait::async_trait;
 use std::sync::Arc;
+
+static LOGGER: AppLogger = AppLogger::new("iot_bee::application::connection_types_cases::cases");
 
 pub struct ConnectionType {
     pub id: u32,
@@ -38,14 +41,20 @@ where
     T: PipelineConnectionTypeRepository + Send + Sync,
 {
     async fn get_all_connection_types(&self) -> Result<Vec<ConnectionType>, IoTBeeError> {
+        LOGGER.debug("get_all_connection_types use case called");
+
         let connection_types_models: Vec<ConnectionTypeModel> =
-            self.connection_type_repository.get_pipeline_connection_type().await?;
+            self.connection_type_repository.get_pipeline_connection_type().await.map_err(|e| {
+                LOGGER.error(&format!("Failed to fetch connection types: {e}"));
+                e
+            })?;
 
         let connection_types: Vec<ConnectionType> = connection_types_models
             .into_iter()
             .map(|model| ConnectionType::new(model.id(), model.connection_type()))
             .collect();
 
+        LOGGER.info(&format!("Found {} connection types", connection_types.len()));
         Ok(connection_types)
     }
 }
