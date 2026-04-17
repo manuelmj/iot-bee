@@ -3,7 +3,7 @@ use crate::domain::entities::validation_schema::{
 };
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 use crate::domain::outbound::pipeline_persistence::PipelineValidationSchemaRepository;
-use crate::domain::value_objects::pipelines_values::DataStroreId;
+use crate::domain::value_objects::pipelines_values::DataStoreId;
 use crate::logging::AppLogger;
 use async_trait::async_trait;
 use std::sync::Arc;
@@ -85,7 +85,7 @@ where
     ) -> Result<PipelineNewValidateSchema, IoTBeeError> {
         LOGGER.debug(&format!("get_validation_schema_by_id use case called for id={id}"));
 
-        let id_to_search = DataStroreId::new(id)?;
+        let id_to_search = DataStoreId::new(id)?;
         let result = self
             .repository
             .get_pipeline_validation_schema(&id_to_search)
@@ -112,7 +112,7 @@ where
     ) -> Result<(), IoTBeeError> {
         LOGGER.debug(&format!("update_validation_schema_name use case called for id={schema_id}"));
 
-        let id_to_search = DataStroreId::new(schema_id)?;
+        let id_to_search = DataStoreId::new(schema_id)?;
         let result = self
             .repository
             .get_pipeline_validation_schema(&id_to_search)
@@ -147,7 +147,7 @@ where
     ) -> Result<(), IoTBeeError> {
         LOGGER.debug(&format!("update_validation_schema use case called for id={schema_id}"));
 
-        let id_to_search = DataStroreId::new(schema_id)?;
+        let id_to_search = DataStoreId::new(schema_id)?;
         let result = self
             .repository
             .get_pipeline_validation_schema(&id_to_search)

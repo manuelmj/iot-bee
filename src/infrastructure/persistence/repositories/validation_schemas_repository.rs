@@ -4,7 +4,7 @@ use crate::domain::entities::validation_schema::{
     PipelineNewValidateSchema, PipelineValidationSchemaModel,
 };
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
-use crate::domain::value_objects::pipelines_values::DataStroreId;
+use crate::domain::value_objects::pipelines_values::DataStoreId;
 use crate::infrastructure::persistence::models::{ValidationSchemaRow, ValidationSchemaRowWhitId};
 use async_trait::async_trait;
 
@@ -68,7 +68,7 @@ impl PipelineValidationSchemaRepository for ValidationSchemaRepository {
 
     async fn delete_pipeline_validation_schema(
         &self,
-        schema_id: &DataStroreId,
+        schema_id: &DataStoreId,
     ) -> Result<(), IoTBeeError> {
         // Implementation to delete the pipeline validation schema from the database
         let pool = self.data_base_connection().pool();
@@ -93,7 +93,7 @@ impl PipelineValidationSchemaRepository for ValidationSchemaRepository {
 
     async fn update_pipeline_validation_schema(
         &self,
-        schema_id: &DataStroreId,
+        schema_id: &DataStoreId,
         schema: &PipelineNewValidateSchema,
     ) -> Result<(), IoTBeeError> {
         // Implementation to update the pipeline validation schema in the database
@@ -125,7 +125,7 @@ impl PipelineValidationSchemaRepository for ValidationSchemaRepository {
 
     async fn get_pipeline_validation_schema(
         &self,
-        schema_id: &DataStroreId,
+        schema_id: &DataStoreId,
     ) -> Result<Option<PipelineNewValidateSchema>, IoTBeeError> {
         // Implementation to retrieve a specific pipeline validation schema from the database
 
@@ -177,7 +177,7 @@ impl PipelineValidationSchemaRepository for ValidationSchemaRepository {
 
     async fn update_pipeline_validation_schema_name(
         &self,
-        schema_id: &DataStroreId,
+        schema_id: &DataStoreId,
         new_name: &str,
     ) -> Result<(), IoTBeeError> {
         // Implementation to update the name of a pipeline validation schema in the database

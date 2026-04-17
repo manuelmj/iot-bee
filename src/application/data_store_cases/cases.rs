@@ -1,5 +1,5 @@
 use crate::domain::entities::data_store::{PipelineDataStoreInputModel, PipelineDataStoreOutputModel};
-use crate::domain::value_objects::pipelines_values::DataStroreId;
+use crate::domain::value_objects::pipelines_values::DataStoreId;
 use crate::domain::outbound::pipeline_persistence::PipelineDataStoreRepository;
 
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
@@ -45,7 +45,7 @@ where
 
     }
     async fn get_data_store_by_id(&self, data_store_id: &u32) -> Result<PipelineDataStoreOutputModel, IoTBeeError> {
-        let data_store_id = DataStroreId::new(*data_store_id)?;
+        let data_store_id = DataStoreId::new(*data_store_id)?;
         let result = self
             .repository
             .get_pipeline_data_store_by_id(&data_store_id)

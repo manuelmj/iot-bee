@@ -1,17 +1,17 @@
 use crate::domain::error::DomainValidationError;
 use crate::domain::error::IoTBeeError;
 
-pub struct DataStroreId(u32);
-impl DataStroreId {
+pub struct DataStoreId(u32);
+impl DataStoreId {
     pub fn new(id: u32) -> Result<Self, IoTBeeError> {
         if id == 0 {
             return Err(DomainValidationError::InvalidFieldValue {
-                field_name: "DataStroreId".to_string(),
+                field_name: "DataStoreId".to_string(),
                 reason: "ID cannot be zero".to_string(),
             }
             .into());
         }
-        Ok(DataStroreId(id))
+        Ok(DataStoreId(id))
     }
     pub fn id(&self) -> u32 {
         self.0

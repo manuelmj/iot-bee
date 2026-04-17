@@ -1,7 +1,7 @@
 use crate::domain::entities::pipeline_groups::{PipelineGroupInputModel, PipelineGroupOutputModel};
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 use crate::domain::outbound::pipeline_persistence::PipelineGroupRepository;
-use crate::domain::value_objects::pipelines_values::DataStroreId;
+use crate::domain::value_objects::pipelines_values::DataStoreId;
 use crate::logging::AppLogger;
 use async_trait::async_trait;
 use std::sync::Arc;
@@ -67,7 +67,7 @@ where
         group_id: &u32,
     ) -> Result<PipelineGroupOutputModel, IoTBeeError> {
         LOGGER.debug(&format!("get_pipeline_group_by_id use case called for id={group_id}"));
-        let group_id = DataStroreId::new(*group_id)?;
+        let group_id = DataStoreId::new(*group_id)?;
         let result = self.repository.get_pipeline_group_by_id(&group_id).await.map_err(|e| {
             LOGGER.error(&format!("Failed to get pipeline group id={}: {e}", group_id.id()));
             e

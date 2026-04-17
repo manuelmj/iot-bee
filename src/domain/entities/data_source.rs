@@ -1,10 +1,10 @@
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
-use crate::domain::value_objects::pipelines_values::{DataStroreId, DescriptionField, FieldName};
+use crate::domain::value_objects::pipelines_values::{DataStoreId, DescriptionField, FieldName};
 use chrono::{DateTime, Utc};
 /// Modelo de entrada para registrar un nuevo data source.
 pub struct PipelineDataSourceInputModel {
     name: FieldName,
-    data_source_type_id: DataStroreId,
+    data_source_type_id: DataStoreId,
     data_source_configuration: String,
     data_source_description: DescriptionField,
 }
@@ -17,7 +17,7 @@ impl PipelineDataSourceInputModel {
     ) -> Result<Self, IoTBeeError> {
         Ok(Self {
             name: FieldName::new(name)?,
-            data_source_type_id: DataStroreId::new(data_source_type_id)?,
+            data_source_type_id: DataStoreId::new(data_source_type_id)?,
             data_source_configuration: data_source_configuration.into(),
             data_source_description: DescriptionField::new(data_source_description)?,
         })
@@ -39,9 +39,9 @@ impl PipelineDataSourceInputModel {
 
 /// Modelo de salida para un data source existente en la base de datos.
 pub struct PipelineDataSourceOutputModel {
-    id: DataStroreId,
+    id: DataStoreId,
     name: FieldName,
-    data_source_type_id: DataStroreId,
+    data_source_type_id: DataStoreId,
     data_source_state: String,
     data_source_configuration: String,
     data_source_description: DescriptionField,
@@ -61,9 +61,9 @@ impl PipelineDataSourceOutputModel {
         updated_at: DateTime<Utc>,
     ) -> Result<Self, IoTBeeError> {
         Ok(Self {
-            id: DataStroreId::new(id)?,
+            id: DataStoreId::new(id)?,
             name: FieldName::new(name)?,
-            data_source_type_id: DataStroreId::new(data_source_type_id)?,
+            data_source_type_id: DataStoreId::new(data_source_type_id)?,
             data_source_state: data_source_state.into(),
             data_source_configuration: data_source_configuration.into(),
             data_source_description: DescriptionField::new(data_source_description)?,
@@ -99,7 +99,7 @@ impl PipelineDataSourceOutputModel {
 }
 
 pub struct PipelineDataSourceUpdateModel {
-    data_source_type_id: Option<DataStroreId>,
+    data_source_type_id: Option<DataStoreId>,
     data_source_state: Option<String>,
     data_source_configuration: Option<String>,
     data_source_description: Option<DescriptionField>,
@@ -123,7 +123,7 @@ impl PipelineDataSourceUpdateModel {
 
         Ok(Self {
             data_source_type_id: data_source_type_id
-                .map(|id| DataStroreId::new(id))
+                .map(|id| DataStoreId::new(id))
                 .transpose()?,
             data_source_state: data_source_state.map(|s| s.into()),
             data_source_configuration: data_source_configuration.map(|c| c.into()),

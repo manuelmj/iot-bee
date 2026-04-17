@@ -1,12 +1,12 @@
 use crate::domain::error::IoTBeeError;
 use crate::domain::value_objects::pipelines_values::{
-    DataStroreId, FieldName, PipelineSchemaModel,
+    DataStoreId, FieldName, PipelineSchemaModel,
 };
 use chrono::{DateTime, Utc};
 
 /// Modelo de salida para un esquema de validación existente en la base de datos.
 pub struct PipelineValidationSchemaModel {
-    id: DataStroreId,
+    id: DataStoreId,
     name: FieldName,
     schema: PipelineSchemaModel,
     created_at: DateTime<Utc>,
@@ -22,7 +22,7 @@ impl PipelineValidationSchemaModel {
         updated_at: DateTime<Utc>,
     ) -> Result<Self, IoTBeeError> {
         Ok(Self {
-            id: DataStroreId::new(id)?,
+            id: DataStoreId::new(id)?,
             name: FieldName::new(name)?,
             schema: PipelineSchemaModel::new(schema)?,
             created_at,

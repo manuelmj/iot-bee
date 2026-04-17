@@ -1,7 +1,7 @@
 use crate::domain::entities::pipeline_groups::{PipelineGroupInputModel, PipelineGroupOutputModel};
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 use crate::domain::outbound::pipeline_persistence::PipelineGroupRepository;
-use crate::domain::value_objects::pipelines_values::DataStroreId;
+use crate::domain::value_objects::pipelines_values::DataStoreId;
 use crate::infrastructure::persistence::models::PipelineGroupRow;
 use crate::infrastructure::persistence::connection::InternalDataBase;
 
@@ -50,7 +50,7 @@ impl PipelineGroupRepository for GroupRepository {
 
     async fn get_pipeline_group_by_id(
         &self,
-        group_id: &DataStroreId,
+        group_id: &DataStoreId,
     ) -> Result<Option<PipelineGroupOutputModel>, IoTBeeError> {
         let pool = self.data_base_connection().pool();
         let result: Option<PipelineGroupRow> = sqlx::query_as::<_, PipelineGroupRow>(

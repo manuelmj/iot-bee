@@ -6,7 +6,7 @@ use crate::domain::error::IoTBeeError;
 use crate::domain::outbound::pipeline_persistence::PipelineDataSourceRepository;
 //infrastructure imports
 use crate::domain::error::PipelinePersistenceError;
-use crate::domain::value_objects::pipelines_values::{DataStroreId, FieldName};
+use crate::domain::value_objects::pipelines_values::{DataStoreId, FieldName};
 use crate::infrastructure::persistence::models::DataSourceRow;
 use crate::infrastructure::persistence::connection::InternalDataBase;
 
@@ -77,7 +77,7 @@ impl PipelineDataSourceRepository for DataSourceRepository {
 
     async fn get_pipeline_data_source(
         &self,
-        data_source_id: &DataStroreId,
+        data_source_id: &DataStoreId,
     ) -> Result<Option<PipelineDataSourceOutputModel>, IoTBeeError> {
         // Implementation to get the pipeline data source from the database
         let pool = self.data_base_connection().pool();
@@ -128,7 +128,7 @@ impl PipelineDataSourceRepository for DataSourceRepository {
 
     async fn update_pipeline_data_source(
         &self,
-        data_source_id: &DataStroreId,
+        data_source_id: &DataStoreId,
         data_source: &PipelineDataSourceUpdateModel,
     ) -> Result<(), IoTBeeError> {
         // Implementation to update the pipeline data source in the database
@@ -185,7 +185,7 @@ impl PipelineDataSourceRepository for DataSourceRepository {
 
     async fn update_pipeline_data_source_name(
         &self,
-        data_source_id: &DataStroreId,
+        data_source_id: &DataStoreId,
         name: &FieldName,
     ) -> Result<(), IoTBeeError> {
         // Implementation to update the pipeline data source name in the database

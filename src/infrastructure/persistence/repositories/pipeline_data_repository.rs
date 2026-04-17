@@ -1,7 +1,7 @@
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 use crate::domain::outbound::pipeline_persistence::PipelineControllerRepository;
 use crate::domain::entities::pipeline_data::{PipelineDataInputModel, PipelineDataOutputModel};
-use crate::domain::value_objects::pipelines_values::DataStroreId;
+use crate::domain::value_objects::pipelines_values::DataStoreId;
 use crate::infrastructure::persistence::models::PipelineRowFlat;
 use crate::infrastructure::persistence::connection::InternalDataBase;
 use async_trait::async_trait;
@@ -102,7 +102,7 @@ impl PipelineControllerRepository for PipelineDataRepository {
         Ok(result)
     }
 
-    async fn get_pipeline_by_id(&self, pipeline_id: &DataStroreId) -> Result<Option<PipelineDataOutputModel>, IoTBeeError> {
+    async fn get_pipeline_by_id(&self, pipeline_id: &DataStoreId) -> Result<Option<PipelineDataOutputModel>, IoTBeeError> {
         let pool = self.data_base_connection().pool();
         let row_result = sqlx::query_as::<_, PipelineRowFlat>(
             r#"

@@ -1,7 +1,7 @@
 use crate::domain::entities::data_source::{
     PipelineDataSourceInputModel, PipelineDataSourceOutputModel, PipelineDataSourceUpdateModel,
 };
-use crate::domain::value_objects::pipelines_values::{DataStroreId, FieldName};
+use crate::domain::value_objects::pipelines_values::{DataStoreId, FieldName};
 
 use crate::domain::error::{IoTBeeError, PipelinePersistenceError};
 use crate::domain::outbound::pipeline_persistence::PipelineDataSourceRepository;
@@ -65,7 +65,7 @@ where
     ) -> Result<PipelineDataSourceOutputModel, IoTBeeError> {
         LOGGER.debug(&format!("get_data_source use case called for id={data_source_id}"));
 
-        let data_source_id = DataStroreId::new(*data_source_id)?;
+        let data_source_id = DataStoreId::new(*data_source_id)?;
         let result = self
             .repository
             .get_pipeline_data_source(&data_source_id)
@@ -101,7 +101,7 @@ where
         data: &PipelineDataSourceUpdateModel,
     ) -> Result<(), IoTBeeError> {
         LOGGER.debug(&format!("update_data_source use case called for id={data_source_id}"));
-        let data_source_id = DataStroreId::new(*data_source_id)?;
+        let data_source_id = DataStoreId::new(*data_source_id)?;
         let update_result = self
             .repository
             .update_pipeline_data_source(&data_source_id, data)
@@ -120,7 +120,7 @@ where
         new_name: &str,
     ) -> Result<(), IoTBeeError> {
         LOGGER.debug(&format!("update_data_source_name use case called for id={data_source_id}"));
-        let data_source_id = DataStroreId::new(*data_source_id)?;
+        let data_source_id = DataStoreId::new(*data_source_id)?;
         let field_name = FieldName::new(new_name)?;
         self.repository
             .update_pipeline_data_source_name(&data_source_id, &field_name)

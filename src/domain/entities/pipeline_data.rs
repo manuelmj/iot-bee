@@ -1,4 +1,4 @@
-use crate::domain::value_objects::pipelines_values::{DataStroreId,FieldName};
+use crate::domain::value_objects::pipelines_values::{DataStoreId,FieldName};
 use crate::domain::error::IoTBeeError;
 use chrono::{DateTime, Utc};
 
@@ -6,10 +6,10 @@ use chrono::{DateTime, Utc};
 
 pub struct PipelineDataInputModel{
     name: FieldName,
-    group_id: DataStroreId,
-    store_id: DataStroreId,
-    data_source_id: DataStroreId,
-    validation_schema_id: DataStroreId,
+    group_id: DataStoreId,
+    store_id: DataStoreId,
+    data_source_id: DataStoreId,
+    validation_schema_id: DataStoreId,
     pipeline_replication : u32, 
 }
 impl PipelineDataInputModel {
@@ -23,10 +23,10 @@ impl PipelineDataInputModel {
     ) -> Result<Self, IoTBeeError> {
         Ok(Self {
             name: FieldName::new(name)?,
-            group_id: DataStroreId::new(group_id)?,
-            store_id: DataStroreId::new(store_id)?,
-            data_source_id: DataStroreId::new(data_source_id)?,
-            validation_schema_id: DataStroreId::new(validation_schema_id)?,
+            group_id: DataStoreId::new(group_id)?,
+            store_id: DataStoreId::new(store_id)?,
+            data_source_id: DataStoreId::new(data_source_id)?,
+            validation_schema_id: DataStoreId::new(validation_schema_id)?,
             pipeline_replication,
         })
     }
@@ -57,19 +57,19 @@ impl PipelineDataInputModel {
 
 
 pub struct PipelineDataOutputModel{
-    id: DataStroreId,
+    id: DataStoreId,
     name: FieldName,
 
-    group_id: DataStroreId,
+    group_id: DataStoreId,
     group_name: FieldName,
    
-    store_id: DataStroreId,
+    store_id: DataStoreId,
     store_name: FieldName,
 
-    data_source_id: DataStroreId,
+    data_source_id: DataStoreId,
     data_source_name: FieldName,
 
-    validation_schema_id: DataStroreId,
+    validation_schema_id: DataStoreId,
     validation_schema_name: FieldName,
 
     pipeline_replication : u32,
@@ -97,15 +97,15 @@ impl PipelineDataOutputModel {
         updated_at: DateTime<Utc>,
     )->Result<Self, IoTBeeError>{
         Ok(Self {
-            id: DataStroreId::new(id)?,
+            id: DataStoreId::new(id)?,
             name: FieldName::new(name)?,
-            group_id: DataStroreId::new(group_id)?,
+            group_id: DataStoreId::new(group_id)?,
             group_name: FieldName::new(group_name)?,
-            store_id: DataStroreId::new(store_id)?,
+            store_id: DataStoreId::new(store_id)?,
             store_name: FieldName::new(store_name)?,
-            data_source_id: DataStroreId::new(data_source_id)?,
+            data_source_id: DataStoreId::new(data_source_id)?,
             data_source_name: FieldName::new(data_source_name)?,
-            validation_schema_id: DataStroreId::new(validation_schema_id)?,
+            validation_schema_id: DataStoreId::new(validation_schema_id)?,
             validation_schema_name: FieldName::new(validation_schema_name)?,
             pipeline_replication,
             pipeline_status: pipeline_status.into(),

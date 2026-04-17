@@ -1,8 +1,8 @@
 use crate::domain::error::IoTBeeError;
-use crate::domain::value_objects::pipelines_values::DataStroreId;
+use crate::domain::value_objects::pipelines_values::DataStoreId;
 
 pub struct ConnectionTypeModel {
-    connection_type_id: DataStroreId,
+    connection_type_id: DataStoreId,
     connection_type: String,
 }
 
@@ -12,7 +12,7 @@ impl ConnectionTypeModel {
         connection_type_id: u32,
     ) -> Result<Self, IoTBeeError> {
         Ok(ConnectionTypeModel {
-            connection_type_id: DataStroreId::new(connection_type_id)?,
+            connection_type_id: DataStoreId::new(connection_type_id)?,
             connection_type: connection_type.into(),
         })
     }

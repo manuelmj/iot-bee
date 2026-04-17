@@ -1,7 +1,7 @@
 use crate::domain::error::{IoTBeeError,PipelinePersistenceError};
 use crate::domain::outbound::pipeline_persistence::PipelineControllerRepository;
 use crate::domain::entities::pipeline_data::{PipelineDataInputModel, PipelineDataOutputModel};
-use crate::domain::value_objects::pipelines_values::DataStroreId;
+use crate::domain::value_objects::pipelines_values::DataStoreId;
 use crate::logging::AppLogger;
 use async_trait::async_trait;
 use std::sync::Arc;
@@ -47,7 +47,7 @@ where
     }
     async fn get_pipeline_by_id(&self, pipeline_id: &u32) -> Result<PipelineDataOutputModel, IoTBeeError> {
         LOGGER.debug(&format!("get_pipeline_by_id use case called for id={pipeline_id}"));
-        let pipeline_id = DataStroreId::new(*pipeline_id)?;
+        let pipeline_id = DataStoreId::new(*pipeline_id)?;
         let result = self
             .repository
             .get_pipeline_by_id(&pipeline_id)

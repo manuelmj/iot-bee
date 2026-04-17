@@ -1,10 +1,10 @@
 use crate::domain::error::IoTBeeError;
-use crate::domain::value_objects::pipelines_values::{DataStroreId, FieldName,PipelineDataStoreModel,DescriptionField};
+use crate::domain::value_objects::pipelines_values::{DataStoreId, FieldName,PipelineDataStoreModel,DescriptionField};
 use chrono::{DateTime, Utc};
 
 pub struct PipelineDataStoreInputModel{
     name: FieldName,
-    type_id: DataStroreId,
+    type_id: DataStoreId,
     data_store_description: DescriptionField,
     configuration: PipelineDataStoreModel,
 }
@@ -17,7 +17,7 @@ impl PipelineDataStoreInputModel {
     ) -> Result<Self, IoTBeeError> {
         Ok(Self {
             name: FieldName::new(name)?,
-            type_id: DataStroreId::new(type_id)?,
+            type_id: DataStoreId::new(type_id)?,
             data_store_description: DescriptionField::new(data_store_description)?,
             configuration: PipelineDataStoreModel::new(configuration)?,
         })
@@ -38,9 +38,9 @@ impl PipelineDataStoreInputModel {
 }
 
 pub struct PipelineDataStoreOutputModel{
-    id: DataStroreId,
+    id: DataStoreId,
     name: FieldName,
-    type_id: DataStroreId,
+    type_id: DataStoreId,
     configuration: PipelineDataStoreModel,
     data_store_description: DescriptionField,
     created_at: DateTime<Utc>,
@@ -57,9 +57,9 @@ impl PipelineDataStoreOutputModel {
         updated_at: DateTime<Utc>,
     ) -> Result<Self, IoTBeeError> {
         Ok(Self {
-            id: DataStroreId::new(id)?,
+            id: DataStoreId::new(id)?,
             name: FieldName::new(name)?,
-            type_id: DataStroreId::new(type_id)?,
+            type_id: DataStoreId::new(type_id)?,
             configuration: PipelineDataStoreModel::new(configuration)?,
             data_store_description: DescriptionField::new(data_store_description)?,
             created_at,
