@@ -48,19 +48,23 @@ impl<T: SendDataToStore + Send + Sync + 'static> Supervised for DataProcessorAct
 // ── Bridge ───────────────────────────────────────────────────────────────────
 // Adapta Addr<DataProcessorActor> al trait SendDataToProcessor.
 // El consumer nunca conoce al actor; solo conoce el trait.
+//──────────────────────────────────────────────────────────────────────────────
 
 pub struct ProcessorActorBridge<T: SendDataToStore + Send + Sync + 'static> {
     addr: Addr<DataProcessorActor<T>>,
 }
 //este es el que debo inyectar en el consumer actor para que pueda enviarle datos al processor actor sin conocerlo directamente.
-impl<T: SendDataToStore + Send + Sync + 'static> ProcessorActorBridge<T> {
+impl<T> ProcessorActorBridge<T> 
+where T: SendDataToStore + Send + Sync + 'static 
+{
     pub fn new(addr: Addr<DataProcessorActor<T>>) -> Self {
         Self { addr }
     }
 }
 
 #[async_trait]
-impl<T: SendDataToStore + Send + Sync + 'static> SendDataToProcessor for ProcessorActorBridge<T> {
+impl<T> SendDataToProcessor for ProcessorActorBridge<T>
+where T: SendDataToStore + Send + Sync + 'static {  
     async fn send(&self, data: &DataConsumerRawType) -> Result<(), IoTBeeError> {
         self.addr
             .send(ProcessDataMessage::new(data.clone()))
@@ -70,3 +74,4 @@ impl<T: SendDataToStore + Send + Sync + 'static> SendDataToProcessor for Process
             })?
     }
 }
+//────────────────────────────────────────────────────────────────────────────────────────────────────────

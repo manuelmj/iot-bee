@@ -20,8 +20,8 @@ pub struct DataConsumerActor<
 > {
     pub data_source: Arc<T>,
     pub data_processor: Arc<U>,
-    pub state: ConsumerActorState,
-    pub sender: Option<Sender<DataConsumerRawType>>,
+    state: ConsumerActorState,
+    sender: Option<Sender<DataConsumerRawType>>,
 }
 
 impl<T, U> DataConsumerActor<T, U>
@@ -43,6 +43,20 @@ where
     pub fn data_processor(&self) -> Arc<U> {
         Arc::clone(&self.data_processor)
     }
+    pub fn sender(&self) -> Option<Sender<DataConsumerRawType>> {
+        self.sender.clone()
+    }
+    pub fn state(&self) -> ConsumerActorState {
+        self.state.clone() 
+    }
+
+    pub fn set_state(&mut self, state: ConsumerActorState) {
+        self.state = state;
+    }
+
+    pub fn set_sender(&mut self, sender: Option<Sender<DataConsumerRawType>>) {
+        self.sender = sender;
+    }
 }
 
 impl<T, U> Actor for DataConsumerActor<T, U>
@@ -61,6 +75,13 @@ where
     fn stopped(&mut self, _ctx: &mut Self::Context) {
         LOGGER.info("DataConsumerActor stopped.");
     }
+    fn stopping(&mut self, ctx: &mut Self::Context) -> Running {
+        LOGGER.info("DataConsumerActor stopping, sending StopConsuming message to self...");
+        ctx.address()
+            .do_send(ConsumerActorActionMessage::stop_consuming());
+        LOGGER.info("DataConsumerActor stopping, initiating shutdown of data consumption...");
+        Running::Stop
+    }
 }
 
 impl<T, U> Supervised for DataConsumerActor<T, U>
@@ -70,7 +91,7 @@ where
 {
     fn restarting(&mut self, _ctx: &mut Self::Context) {
         LOGGER.warn("DataConsumerActor is restarting...");
-        self.state = ConsumerActorState::Idle;
-        self.sender = None;
+        self.set_state(ConsumerActorState::Idle);
+        self.set_sender(None);
     }
 }
