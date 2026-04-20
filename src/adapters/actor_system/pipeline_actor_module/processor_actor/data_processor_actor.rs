@@ -74,4 +74,41 @@ where T: SendDataToStore + Send + Sync + 'static {
             })?
     }
 }
+use super::super::general_messages::{SendActorActionMessageResult, SendActorActionMessage};
+use super::super::general_ports::SendActionToActor;
+
+#[async_trait]
+impl <T> SendActionToActor for ProcessorActorBridge<T>
+where T: SendDataToStore + Send + Sync + 'static 
+{
+    
+
+    async fn send_stop_actor(&self) -> SendActorActionMessageResult {
+        self.addr
+            .send(SendActorActionMessage::stop())
+            .await
+            .map_err(|e| PipelineLifecycleError::InternalCommunication {
+                reason: format!("Failed to send stop message to processor actor: {}", e),
+            })?
+    }
+
+    async fn send_restart_actor(&self) -> SendActorActionMessageResult {
+        self.addr
+            .send(SendActorActionMessage::restart())
+            .await
+            .map_err(|e| PipelineLifecycleError::InternalCommunication {
+                reason: format!("Failed to send restart message to processor actor: {}", e),
+            })?
+    }
+
+    async fn get_actor_status(&self) -> SendActorActionMessageResult {
+        self.addr
+            .send(SendActorActionMessage::status())
+            .await
+            .map_err(|e| PipelineLifecycleError::InternalCommunication {
+                reason: format!("Failed to send get status message to processor actor: {}", e),
+            })?
+        }
+}
+
 //────────────────────────────────────────────────────────────────────────────────────────────────────────

@@ -37,3 +37,47 @@ impl<T: SendDataToStore + Send + Sync + 'static> Handler<ProcessDataMessage>
         })
     }
 }
+
+
+
+use super::super::general_messages::{SendActorActionMessage,SendActorActionMessageResult,ResponseActorActionMessage,ActorActions};
+
+impl<T: SendDataToStore + Send + Sync + 'static> Handler<SendActorActionMessage>
+    for DataProcessorActor<T>
+{
+    type Result = ResponseFuture<SendActorActionMessageResult>;
+
+    fn handle(&mut self, msg: SendActorActionMessage, ctx: &mut Self::Context) -> Self::Result {
+        
+        Box::pin(async move {
+            // Aquí puedes agregar la lógica para manejar el mensaje de acción
+            LOGGER.info(&format!("Received action message: {:?}", msg.action()));
+            // Por ejemplo, podrías iniciar o detener el procesamiento según la acción recibida
+            match msg.action() {
+                ActorActions::Start => {
+                    LOGGER.info("Starting data processing...");
+                    // Lógica para iniciar el procesamiento
+                    Ok(ResponseActorActionMessage::running())
+                }
+                ActorActions::Stop => {
+                    LOGGER.info("Stopping data processing...");
+                    // Lógica para detener el procesamiento
+                    Ok(ResponseActorActionMessage::stopped())
+                }
+                ActorActions::Restart => {
+                    LOGGER.info("Restarting data processing...");
+                    // Lógica para reiniciar el procesamiento
+                    Ok(ResponseActorActionMessage::restarting())
+                }
+                ActorActions::Status => {
+                    LOGGER.info("Checking data processing status...");
+                    Ok(ResponseActorActionMessage::running()) // Aquí puedes devolver el estado actual real
+                }
+                _ => {
+                    LOGGER.warn("Received unknown action.");
+                    Ok(ResponseActorActionMessage::failed())
+                }
+            }
+        })        
+    }
+}
