@@ -5,16 +5,14 @@ use tokio::sync::mpsc::Sender;
 use crate::adapters::actor_system::pipeline_actor_module::consumer_actor::messages::{
     ConsumerActorActionMessage, ConsumerActorState,
 };
+use crate::adapters::actor_system::pipeline_actor_module::general_ports::SendDataToProcessor;
 use crate::domain::entities::data_consumer_types::DataConsumerRawType;
 use crate::domain::outbound::data_source::DataSource;
-use crate::adapters::actor_system::pipeline_actor_module::general_ports::SendDataToProcessor;
 
 use crate::logging::AppLogger;
 static LOGGER: AppLogger = AppLogger::new(
     "iot_bee::adapters::actor_system::pipeline_actor_module::consumer_actor::DataConsumerActor",
 );
-
-
 
 pub struct DataConsumerActor<
     T: DataSource + Send + Sync + 'static,
@@ -76,4 +74,3 @@ where
         self.sender = None;
     }
 }
-

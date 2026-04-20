@@ -6,8 +6,8 @@ use crate::adapters::actor_system::pipeline_actor_module::general_ports::SendDat
 use crate::adapters::actor_system::pipeline_actor_module::general_ports::SendDataToStore;
 use crate::domain::entities::data_consumer_types::DataConsumerRawType;
 use crate::domain::error::{IoTBeeError, PipelineLifecycleError};
-use std::sync::Arc;
 use crate::logging::AppLogger;
+use std::sync::Arc;
 
 static LOGGER: AppLogger = AppLogger::new(
     "iot_bee::adapters::actor_system::pipeline_actor_module::processor_actor::DataProcessorActor",
@@ -18,7 +18,7 @@ static LOGGER: AppLogger = AppLogger::new(
 pub struct DataProcessorActor<T: SendDataToStore + Send + Sync + 'static> {
     data_store: Arc<T>,
 }
-impl <T: SendDataToStore + Send + Sync + 'static> DataProcessorActor<T> {
+impl<T: SendDataToStore + Send + Sync + 'static> DataProcessorActor<T> {
     pub fn new(data_store: Arc<T>) -> Self {
         Self { data_store }
     }
@@ -65,10 +65,8 @@ impl<T: SendDataToStore + Send + Sync + 'static> SendDataToProcessor for Process
         self.addr
             .send(ProcessDataMessage::new(data.clone()))
             .await
-            .map_err(|e| {
-                PipelineLifecycleError::InternalCommunication {
-                    reason: format!("Failed to send message to processor actor: {}", e),
-                }
+            .map_err(|e| PipelineLifecycleError::InternalCommunication {
+                reason: format!("Failed to send message to processor actor: {}", e),
             })?
     }
 }

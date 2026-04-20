@@ -2,11 +2,11 @@ use actix::fut::wrap_future;
 use actix::prelude::*;
 use tokio::sync::mpsc;
 
-use crate::adapters::actor_system::pipeline_actor_module::general_ports::SendDataToProcessor;
 use crate::adapters::actor_system::pipeline_actor_module::consumer_actor::{
     data_consumer_actor::DataConsumerActor,
     messages::{ConsumerActorAction, ConsumerActorActionMessage, ConsumerActorState},
 };
+use crate::adapters::actor_system::pipeline_actor_module::general_ports::SendDataToProcessor;
 use crate::domain::entities::data_consumer_types::DataConsumerRawType;
 use crate::domain::outbound::data_source::DataSource;
 use crate::logging::AppLogger;
@@ -42,11 +42,10 @@ where
                 tokio::spawn(async move {
                     let mut rx = rx;
                     while let Some(data) = rx.recv().await {
-                        LOGGER.info(&format!("Received data from DataSource: {:?}", data));                   
+                        LOGGER.info(&format!("Received data from DataSource: {:?}", data));
                         if let Err(e) = sender_to_processor.send(&data).await {
                             LOGGER.error(&format!("Failed to send data to processor: {}", e));
                         }
-
                     }
                     LOGGER.info("DataConsumerActor channel closed, stopping consumption.");
                     actor_addr.do_send(ConsumerActorActionMessage::channel_died());
