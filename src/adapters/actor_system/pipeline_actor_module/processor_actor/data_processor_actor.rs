@@ -6,8 +6,8 @@ use crate::adapters::actor_system::pipeline_actor_module::general_ports::SendDat
 use crate::adapters::actor_system::pipeline_actor_module::general_ports::SendDataToStore;
 use crate::domain::entities::data_consumer_types::DataConsumerRawType;
 use crate::domain::error::{IoTBeeError, PipelineLifecycleError};
-use std::sync::Arc;
 use crate::logging::AppLogger;
+use std::sync::Arc;
 
 static LOGGER: AppLogger = AppLogger::new(
     "iot_bee::adapters::actor_system::pipeline_actor_module::processor_actor::DataProcessorActor",
@@ -18,7 +18,7 @@ static LOGGER: AppLogger = AppLogger::new(
 pub struct DataProcessorActor<T: SendDataToStore + Send + Sync + 'static> {
     data_store: Arc<T>,
 }
-impl <T: SendDataToStore + Send + Sync + 'static> DataProcessorActor<T> {
+impl<T: SendDataToStore + Send + Sync + 'static> DataProcessorActor<T> {
     pub fn new(data_store: Arc<T>) -> Self {
         Self { data_store }
     }
@@ -48,27 +48,30 @@ impl<T: SendDataToStore + Send + Sync + 'static> Supervised for DataProcessorAct
 // ── Bridge ───────────────────────────────────────────────────────────────────
 // Adapta Addr<DataProcessorActor> al trait SendDataToProcessor.
 // El consumer nunca conoce al actor; solo conoce el trait.
+//──────────────────────────────────────────────────────────────────────────────
 
 pub struct ProcessorActorBridge<T: SendDataToStore + Send + Sync + 'static> {
     addr: Addr<DataProcessorActor<T>>,
 }
 //este es el que debo inyectar en el consumer actor para que pueda enviarle datos al processor actor sin conocerlo directamente.
-impl<T: SendDataToStore + Send + Sync + 'static> ProcessorActorBridge<T> {
+impl<T> ProcessorActorBridge<T> 
+where T: SendDataToStore + Send + Sync + 'static 
+{
     pub fn new(addr: Addr<DataProcessorActor<T>>) -> Self {
         Self { addr }
     }
 }
 
 #[async_trait]
-impl<T: SendDataToStore + Send + Sync + 'static> SendDataToProcessor for ProcessorActorBridge<T> {
+impl<T> SendDataToProcessor for ProcessorActorBridge<T>
+where T: SendDataToStore + Send + Sync + 'static {  
     async fn send(&self, data: &DataConsumerRawType) -> Result<(), IoTBeeError> {
         self.addr
             .send(ProcessDataMessage::new(data.clone()))
             .await
-            .map_err(|e| {
-                PipelineLifecycleError::InternalCommunication {
-                    reason: format!("Failed to send message to processor actor: {}", e),
-                }
+            .map_err(|e| PipelineLifecycleError::InternalCommunication {
+                reason: format!("Failed to send message to processor actor: {}", e),
             })?
     }
 }
+//────────────────────────────────────────────────────────────────────────────────────────────────────────

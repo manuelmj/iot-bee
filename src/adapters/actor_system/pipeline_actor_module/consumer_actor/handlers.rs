@@ -2,11 +2,11 @@ use actix::fut::wrap_future;
 use actix::prelude::*;
 use tokio::sync::mpsc;
 
-use crate::adapters::actor_system::pipeline_actor_module::general_ports::SendDataToProcessor;
 use crate::adapters::actor_system::pipeline_actor_module::consumer_actor::{
     data_consumer_actor::DataConsumerActor,
     messages::{ConsumerActorAction, ConsumerActorActionMessage, ConsumerActorState},
 };
+use crate::adapters::actor_system::pipeline_actor_module::general_ports::SendDataToProcessor;
 use crate::domain::entities::data_consumer_types::DataConsumerRawType;
 use crate::domain::outbound::data_source::DataSource;
 use crate::logging::AppLogger;
@@ -27,26 +27,26 @@ where
     fn handle(&mut self, msg: ConsumerActorActionMessage, ctx: &mut Context<Self>) -> Self::Result {
         match msg.action() {
             ConsumerActorAction::StartConsuming => {
-                if self.state == ConsumerActorState::Consuming {
+                if self.state() == ConsumerActorState::Consuming {
                     LOGGER
                         .warn("StartConsuming received but actor is already consuming. Ignoring.");
                     return Box::pin(async { ConsumerActorState::Consuming }.into_actor(self));
                 }
 
                 let (tx, rx) = mpsc::channel::<DataConsumerRawType>(CHANNEL_CAPACITY);
-                self.sender = Some(tx.clone());
+                self.set_sender(Some(tx.clone()));
 
                 let data_source = self.data_source();
                 let actor_addr = ctx.address();
                 let sender_to_processor = self.data_processor();
                 tokio::spawn(async move {
                     let mut rx = rx;
+                    LOGGER.info("DataConsumerActor started consuming data from DataSource...");
                     while let Some(data) = rx.recv().await {
-                        LOGGER.info(&format!("Received data from DataSource: {:?}", data));                   
+                        // LOGGER.info(&format!("Received data from DataSource: {:?}", data));
                         if let Err(e) = sender_to_processor.send(&data).await {
                             LOGGER.error(&format!("Failed to send data to processor: {}", e));
                         }
-
                     }
                     LOGGER.info("DataConsumerActor channel closed, stopping consumption.");
                     actor_addr.do_send(ConsumerActorActionMessage::channel_died());
@@ -57,34 +57,34 @@ where
                         .map(|result, actor, _ctx| {
                             match result {
                                 Ok(_) => {
-                                    actor.state = ConsumerActorState::Consuming;
+                                    actor.set_state(ConsumerActorState::Consuming);
                                     LOGGER.info("Consumer started successfully");
                                 }
                                 Err(e) => {
-                                    actor.state = ConsumerActorState::Idle;
-                                    actor.sender = None;
+                                    actor.set_state(ConsumerActorState::Idle);
+                                    actor.set_sender(None);
                                     LOGGER.error(&format!("Failed to start consuming: {}", e));
                                 }
                             }
-                            actor.state.clone()
+                            actor.state()
                         }),
                 )
             }
 
             ConsumerActorAction::StopConsuming => {
-                if self.state == ConsumerActorState::Stopped
-                    || self.state == ConsumerActorState::Stopping
+                if self.state() == ConsumerActorState::Stopped
+                    || self.state() == ConsumerActorState::Stopping
                 {
                     LOGGER.warn(
                         "StopConsuming received but actor is already stopping/stopped. Ignoring.",
                     );
-                    let state = self.state.clone();
+                    let state = self.state();
                     return Box::pin(async move { state }.into_actor(self));
                 }
 
                 // Soltar el sender dispara sender.closed() en el task de RabbitMQ.
-                self.sender.take();
-                self.state = ConsumerActorState::Stopping;
+                self.set_sender(None);
+                self.set_state(ConsumerActorState::Stopping);
                 LOGGER
                     .info("StopConsuming received. Sender dropped, RabbitMQ task will shut down.");
 
@@ -92,13 +92,13 @@ where
             }
 
             ConsumerActorAction::ChannelDied => {
-                match self.state {
+                match self.state() {
                     ConsumerActorState::Consuming => {
                         LOGGER.warn(
                             "ChannelDied received while consuming. Transitioning to Reconnecting.",
                         );
-                        self.state = ConsumerActorState::Reconnecting;
-                        self.sender = None;
+                        self.set_state(ConsumerActorState::Reconnecting);
+                        self.set_sender(None);
                         ctx.address()
                             .do_send(ConsumerActorActionMessage::start_consuming());
                     }
@@ -111,12 +111,12 @@ where
                         );
                     }
                 }
-                let state = self.state.clone();
+                let state = self.state();
                 Box::pin(async move { state }.into_actor(self))
             }
 
             ConsumerActorAction::GetState => {
-                let state = self.state.clone();
+                let state = self.state();
                 Box::pin(async move { state }.into_actor(self))
             }
         }
