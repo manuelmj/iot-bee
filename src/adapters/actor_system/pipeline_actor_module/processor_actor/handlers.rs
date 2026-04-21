@@ -47,7 +47,7 @@ impl<T: SendDataToStore + Send + Sync + 'static> Handler<SendActorActionMessage>
 {
     type Result = ResponseFuture<SendActorActionMessageResult>;
 
-    fn handle(&mut self, msg: SendActorActionMessage, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: SendActorActionMessage, _ctx: &mut Self::Context) -> Self::Result {
         
         Box::pin(async move {
             // Aquí puedes agregar la lógica para manejar el mensaje de acción
@@ -72,10 +72,6 @@ impl<T: SendDataToStore + Send + Sync + 'static> Handler<SendActorActionMessage>
                 ActorActions::Status => {
                     LOGGER.info("Checking data processing status...");
                     Ok(ResponseActorActionMessage::running()) // Aquí puedes devolver el estado actual real
-                }
-                _ => {
-                    LOGGER.warn("Received unknown action.");
-                    Ok(ResponseActorActionMessage::failed())
                 }
             }
         })        

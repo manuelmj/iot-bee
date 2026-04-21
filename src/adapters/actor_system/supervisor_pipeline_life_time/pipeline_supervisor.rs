@@ -1,6 +1,5 @@
 use actix::prelude::*;
 
-use super::super::pipeline_actor_module::general_ports::SendActionToActor;
 use super::pipeline_abstraction::PipelineRegistry;
 use crate::logging::AppLogger;
 
@@ -22,21 +21,11 @@ static LOGGER: AppLogger = AppLogger::new(
 //   en la parte síncrona del handler (antes del await) para liberar
 //   el RwLock antes de suspender.
 
-pub struct PipelineSupervisor<T, U, V>
-where
-    T: SendActionToActor + 'static,
-    U: SendActionToActor + 'static,
-    V: SendActionToActor + 'static,
-{
-    pub(super) child_registry: PipelineRegistry<T, U, V>,
+pub struct PipelineSupervisor {
+    pub(super) child_registry: PipelineRegistry,
 }
 
-impl<T, U, V> PipelineSupervisor<T, U, V>
-where
-    T: SendActionToActor + 'static,
-    U: SendActionToActor + 'static,
-    V: SendActionToActor + 'static,
-{
+impl PipelineSupervisor {
     pub fn new() -> Self {
         Self {
             child_registry: PipelineRegistry::new(),
@@ -44,12 +33,7 @@ where
     }
 }
 
-impl<T, U, V> Actor for PipelineSupervisor<T, U, V>
-where
-    T: SendActionToActor + 'static,
-    U: SendActionToActor + 'static,
-    V: SendActionToActor + 'static,
-{
+impl Actor for PipelineSupervisor {
     type Context = Context<Self>;
 
     fn started(&mut self, _ctx: &mut Self::Context) {
@@ -70,13 +54,7 @@ where
     }
 }
 
-
-impl<T, U, V> Supervised for PipelineSupervisor<T, U, V>
-where
-    T: SendActionToActor + 'static,
-    U: SendActionToActor + 'static,
-    V: SendActionToActor + 'static,
-{
+impl Supervised for PipelineSupervisor {
     fn restarting(&mut self, _ctx: &mut Self::Context) {
         LOGGER.warn("PipelineSupervisor is restarting. All child pipelines will be stopped and restarted.");
     }

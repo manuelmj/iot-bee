@@ -18,24 +18,16 @@ pub type TripleResult = (
 // Agrupa los tres bridges (consumer, processor, store) de un pipeline activo.
 // Las acciones de ciclo de vida se delegan a los tres en orden.
 
-pub struct PipelineAbstractionController<T, U, V>
-where
-    T: SendActionToActor,
-    U: SendActionToActor,
-    V: SendActionToActor,
+pub struct PipelineAbstractionController
 {
-    consumer: T,
-    processor: U,
-    store: V,
+    consumer: Box<dyn SendActionToActor>,
+    processor: Box<dyn SendActionToActor>,
+    store: Box<dyn SendActionToActor>,
 }
 
-impl<T, U, V> PipelineAbstractionController<T, U, V>
-where
-    T: SendActionToActor,
-    U: SendActionToActor,
-    V: SendActionToActor,
+impl PipelineAbstractionController
 {
-    pub fn new(consumer: T, processor: U, store: V) -> Self {
+    pub fn new(consumer: Box<dyn SendActionToActor>, processor: Box<dyn SendActionToActor>, store: Box<dyn SendActionToActor>) -> Self {
         Self { consumer, processor, store }
     }
 
@@ -72,25 +64,17 @@ where
 // HashMap<id, Arc<Controller>> protegido con RwLock.
 // Se almacena Arc para poder clonar la referencia antes de cualquier .await,
 // garantizando que el RwLockGuard nunca se sostenga a través de un punto de
-// suspensión asíncrona (lo que causaría un deadlock en tokio).
+// suspensión asíncrona (lo que causaría un deadlock en tokio). 
 
-pub struct PipelineRegistry<T, U, V>
-where
-    T: SendActionToActor,
-    U: SendActionToActor,
-    V: SendActionToActor,
+pub struct PipelineRegistry
 {
-    pipelines: RwLock<HashMap<u32, Arc<PipelineAbstractionController<T, U, V>>>>,
+    pipelines: RwLock<HashMap<u32, Arc<PipelineAbstractionController>>>,
 }
 
-impl<T, U, V> PipelineRegistry<T, U, V>
-where
-    T: SendActionToActor,
-    U: SendActionToActor,
-    V: SendActionToActor,
+impl PipelineRegistry
 {
     pub fn new() -> Self {
-        let pipelines: HashMap<u32, Arc<PipelineAbstractionController<T, U, V>>> = HashMap::new();
+        let pipelines: HashMap<u32, Arc<PipelineAbstractionController>> = HashMap::new();
         Self { pipelines: RwLock::new(pipelines) }
     }
 
@@ -103,7 +87,7 @@ where
     fn read_lock(
         &self,
     ) -> Result<
-        std::sync::RwLockReadGuard<'_, HashMap<u32, Arc<PipelineAbstractionController<T, U, V>>>>,
+        std::sync::RwLockReadGuard<'_, HashMap<u32, Arc<PipelineAbstractionController>>>,
         IoTBeeError,
     > {
         self.pipelines.read().map_err(|_| {
@@ -119,7 +103,7 @@ where
     fn write_lock(
         &self,
     ) -> Result<
-        std::sync::RwLockWriteGuard<'_, HashMap<u32, Arc<PipelineAbstractionController<T, U, V>>>>,
+        std::sync::RwLockWriteGuard<'_, HashMap<u32, Arc<PipelineAbstractionController>>>,
         IoTBeeError,
     > {
         self.pipelines.write().map_err(|_| {
@@ -138,7 +122,7 @@ where
     pub(super) fn get_controller(
         &self,
         id: u32,
-    ) -> Result<Arc<PipelineAbstractionController<T, U, V>>, IoTBeeError> {
+    ) -> Result<Arc<PipelineAbstractionController>, IoTBeeError> {
         self.read_lock()?
             .get(&id)
             .cloned()
@@ -153,7 +137,7 @@ where
     pub fn add(
         &self,
         id: u32,
-        controller: PipelineAbstractionController<T, U, V>,
+        controller: PipelineAbstractionController,
     ) -> Result<(), IoTBeeError> {
         let mut map = self.write_lock()?;
         if map.contains_key(&id) {
@@ -171,7 +155,7 @@ where
     pub fn remove(
         &self,
         id: u32,
-    ) -> Result<Arc<PipelineAbstractionController<T, U, V>>, IoTBeeError> {
+    ) -> Result<Arc<PipelineAbstractionController>, IoTBeeError> {
         self.write_lock()?
             .remove(&id)
             .ok_or_else(|| {
@@ -182,18 +166,6 @@ where
     /// Lista los ids de todos los pipelines registrados.
     pub fn list_ids(&self) -> Result<Vec<u32>, IoTBeeError> {
         Ok(self.read_lock()?.keys().copied().collect())
-    }
-
-    /// Acceso de solo lectura sincrónico a un pipeline mediante closure.
-    /// El lock se libera al salir del closure; no usar para operaciones async.
-    pub fn with<F, R>(&self, id: u32, f: F) -> Result<R, IoTBeeError>
-    where
-        F: FnOnce(&PipelineAbstractionController<T, U, V>) -> R,
-    {
-        let map = self.read_lock()?;
-        map.get(&id)
-            .map(|c| f(c))
-            .ok_or_else(|| PipelineLifecycleError::NotFound { pipeline_id: id.to_string() }.into())
     }
 
     // ── Acciones de ciclo de vida ────────────────────────────────────────────
@@ -217,6 +189,4 @@ where
         Ok(controller.status().await)
     }
 }
-
-
 

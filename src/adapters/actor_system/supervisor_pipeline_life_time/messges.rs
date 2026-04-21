@@ -1,39 +1,23 @@
 use actix::prelude::*;
 
-use super::super::pipeline_actor_module::general_ports::SendActionToActor;
 use super::pipeline_abstraction::{PipelineAbstractionController, TripleResult};
 use crate::domain::error::IoTBeeError;
 
 // ── AddPipeline ───────────────────────────────────────────────────────────────
 // Registra un nuevo pipeline en el supervisor. Operación síncrona.
 
-pub struct AddPipelineMessage<T, U, V>
-where
-    T: SendActionToActor,
-    U: SendActionToActor,
-    V: SendActionToActor,
-{
+pub struct AddPipelineMessage {
     pub id: u32,
-    pub controller: PipelineAbstractionController<T, U, V>,
+    pub controller: PipelineAbstractionController,
 }
 
-impl<T, U, V> AddPipelineMessage<T, U, V>
-where
-    T: SendActionToActor,
-    U: SendActionToActor,
-    V: SendActionToActor,
-{
-    pub fn new(id: u32, controller: PipelineAbstractionController<T, U, V>) -> Self {
+impl AddPipelineMessage {
+    pub fn new(id: u32, controller: PipelineAbstractionController) -> Self {
         Self { id, controller }
     }
 }
 
-impl<T, U, V> Message for AddPipelineMessage<T, U, V>
-where
-    T: SendActionToActor,
-    U: SendActionToActor,
-    V: SendActionToActor,
-{
+impl Message for AddPipelineMessage {
     type Result = Result<(), IoTBeeError>;
 }
 

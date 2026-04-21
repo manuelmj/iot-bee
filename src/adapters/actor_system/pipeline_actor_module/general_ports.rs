@@ -14,12 +14,12 @@ pub trait SendDataToStore: Send + Sync {
 
 
 
-use super::general_messages::{SendActorActionMessageResult, SendActorActionMessage};
+use super::general_messages::{SendActorActionMessageResult};
 #[async_trait]
 pub trait SendActionToActor: Send + Sync {
     // async fn send_start_actor(&self) -> SendActorActionMessageResult;
     async fn send_stop_actor(&self) -> SendActorActionMessageResult;
     async fn send_restart_actor(&self) -> SendActorActionMessageResult;
     async fn get_actor_status(&self) -> SendActorActionMessageResult;
-
+    
 }

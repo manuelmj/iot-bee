@@ -1,6 +1,5 @@
 use actix::prelude::*;
 
-use super::super::pipeline_actor_module::general_ports::SendActionToActor;
 use super::messges::{
     AddPipelineMessage, ListPipelinesMessage, RemovePipelineMessage, RestartPipelineMessage,
     StatusPipelineMessage, StopPipelineMessage,
@@ -11,17 +10,12 @@ use crate::domain::error::IoTBeeError;
 
 // ── AddPipeline ── síncrono ───────────────────────────────────────────────────
 
-impl<T, U, V> Handler<AddPipelineMessage<T, U, V>> for PipelineSupervisor<T, U, V>
-where
-    T: SendActionToActor + 'static,
-    U: SendActionToActor + 'static,
-    V: SendActionToActor + 'static,
-{
+impl Handler<AddPipelineMessage> for PipelineSupervisor {
     type Result = Result<(), IoTBeeError>;
 
     fn handle(
         &mut self,
-        msg: AddPipelineMessage<T, U, V>,
+        msg: AddPipelineMessage,
         _ctx: &mut Context<Self>,
     ) -> Self::Result {
         self.child_registry.add(msg.id, msg.controller)
@@ -30,12 +24,7 @@ where
 
 // ── RemovePipeline ── síncrono ────────────────────────────────────────────────
 
-impl<T, U, V> Handler<RemovePipelineMessage> for PipelineSupervisor<T, U, V>
-where
-    T: SendActionToActor + 'static,
-    U: SendActionToActor + 'static,
-    V: SendActionToActor + 'static,
-{
+impl Handler<RemovePipelineMessage> for PipelineSupervisor {
     type Result = Result<(), IoTBeeError>;
 
     fn handle(&mut self, msg: RemovePipelineMessage, _ctx: &mut Context<Self>) -> Self::Result {
@@ -45,12 +34,7 @@ where
 
 // ── ListPipelines ── síncrono ─────────────────────────────────────────────────
 
-impl<T, U, V> Handler<ListPipelinesMessage> for PipelineSupervisor<T, U, V>
-where
-    T: SendActionToActor + 'static,
-    U: SendActionToActor + 'static,
-    V: SendActionToActor + 'static,
-{
+impl Handler<ListPipelinesMessage> for PipelineSupervisor {
     type Result = Result<Vec<u32>, IoTBeeError>;
 
     fn handle(&mut self, _msg: ListPipelinesMessage, _ctx: &mut Context<Self>) -> Self::Result {
@@ -64,12 +48,7 @@ where
 // síncrona del handler, ANTES de entrar en Box::pin(async move {}).
 // El mailbox sigue procesando mensajes mientras el future está en vuelo.
 
-impl<T, U, V> Handler<StopPipelineMessage> for PipelineSupervisor<T, U, V>
-where
-    T: SendActionToActor + 'static,
-    U: SendActionToActor + 'static,
-    V: SendActionToActor + 'static,
-{
+impl Handler<StopPipelineMessage> for PipelineSupervisor {
     type Result = ResponseFuture<Result<TripleResult, IoTBeeError>>;
 
     fn handle(&mut self, msg: StopPipelineMessage, _ctx: &mut Context<Self>) -> Self::Result {
@@ -83,12 +62,7 @@ where
 
 // ── RestartPipeline ── asíncrono ──────────────────────────────────────────────
 
-impl<T, U, V> Handler<RestartPipelineMessage> for PipelineSupervisor<T, U, V>
-where
-    T: SendActionToActor + 'static,
-    U: SendActionToActor + 'static,
-    V: SendActionToActor + 'static,
-{
+impl Handler<RestartPipelineMessage> for PipelineSupervisor {
     type Result = ResponseFuture<Result<TripleResult, IoTBeeError>>;
 
     fn handle(&mut self, msg: RestartPipelineMessage, _ctx: &mut Context<Self>) -> Self::Result {
@@ -102,12 +76,7 @@ where
 
 // ── StatusPipeline ── asíncrono ───────────────────────────────────────────────
 
-impl<T, U, V> Handler<StatusPipelineMessage> for PipelineSupervisor<T, U, V>
-where
-    T: SendActionToActor + 'static,
-    U: SendActionToActor + 'static,
-    V: SendActionToActor + 'static,
-{
+impl Handler<StatusPipelineMessage> for PipelineSupervisor {
     type Result = ResponseFuture<Result<TripleResult, IoTBeeError>>;
 
     fn handle(&mut self, msg: StatusPipelineMessage, _ctx: &mut Context<Self>) -> Self::Result {

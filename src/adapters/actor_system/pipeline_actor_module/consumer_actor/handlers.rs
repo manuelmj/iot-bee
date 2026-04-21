@@ -122,3 +122,54 @@ where
         }
     }
 }
+
+use crate::adapters::actor_system::pipeline_actor_module::general_messages::{
+    ActorActions, ResponseActorActionMessage, SendActorActionMessage, SendActorActionMessageResult,
+};
+
+impl<T, U> Handler<SendActorActionMessage> for DataConsumerActor<T, U>
+where
+    T: DataSource + Send + Sync + 'static,
+    U: SendDataToProcessor + Send + Sync + 'static,
+{
+    type Result = ResponseFuture<SendActorActionMessageResult>;
+
+    fn handle(&mut self, msg: SendActorActionMessage, ctx: &mut Self::Context) -> Self::Result {
+        match msg.action() {
+            ActorActions::Stop => {
+                LOGGER.info("DataConsumerActor: Stop action received.");
+                ctx.address()
+                    .do_send(ConsumerActorActionMessage::stop_consuming());
+                Box::pin(async { Ok(ResponseActorActionMessage::stopped()) })
+            }
+            ActorActions::Restart => {
+                LOGGER.info("DataConsumerActor: Restart action received.");
+                ctx.address()
+                    .do_send(ConsumerActorActionMessage::stop_consuming());
+                ctx.address()
+                    .do_send(ConsumerActorActionMessage::start_consuming());
+                Box::pin(async { Ok(ResponseActorActionMessage::restarting()) })
+            }
+            ActorActions::Status => {
+                LOGGER.info("DataConsumerActor: Status action received.");
+                let current = self.state();
+                Box::pin(async move {
+                    let status = match current {
+                        ConsumerActorState::Consuming | ConsumerActorState::Reconnecting => {
+                            ResponseActorActionMessage::running()
+                        }
+                        ConsumerActorState::Stopped | ConsumerActorState::Stopping => {
+                            ResponseActorActionMessage::stopped()
+                        }
+                        ConsumerActorState::Idle => ResponseActorActionMessage::running(),
+                    };
+                    Ok(status)
+                })
+            }
+            _ => {
+                LOGGER.warn("DataConsumerActor: Unknown action received.");
+                Box::pin(async { Ok(ResponseActorActionMessage::failed()) })
+            }
+        }
+    }
+}

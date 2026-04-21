@@ -5,12 +5,15 @@ use crate::domain::error::{IoTBeeError,PipelineLifecycleError};
 use crate::logging::AppLogger;  
 use std::sync::Arc;
 use async_trait::async_trait;
+
 use super::messages::SendDataToStoreMessage;
+use super::super::general_messages::{SendActorActionMessage, SendActorActionMessageResult};
+use super::super::general_ports::SendActionToActor;
+
 
 static LOGGER: AppLogger = AppLogger::new(
     "iot_bee::adapters::actor_system::pipeline_actor_module::store_actor::DataStoreActor",
 );
-
 
 pub struct DataStoreActor<T: DataExternalStore + Send + Sync + 'static> {
     external_store: Arc<T>,
@@ -81,6 +84,40 @@ where
                 PipelineLifecycleError::InternalCommunication {
                     reason: format!("Failed to send message to store actor: {}", e),
                 }
+            })?
+    }
+}
+
+
+#[async_trait]
+impl<T> SendActionToActor for StoreActorBridge<T>
+where
+    T: DataExternalStore + Send + Sync + 'static,
+{
+    async fn send_stop_actor(&self) -> SendActorActionMessageResult {
+        self.addr
+            .send(SendActorActionMessage::stop())
+            .await
+            .map_err(|e| PipelineLifecycleError::InternalCommunication {
+                reason: format!("Failed to send stop message to store actor: {}", e),
+            })?
+    }
+
+    async fn send_restart_actor(&self) -> SendActorActionMessageResult {
+        self.addr
+            .send(SendActorActionMessage::restart())
+            .await
+            .map_err(|e| PipelineLifecycleError::InternalCommunication {
+                reason: format!("Failed to send restart message to store actor: {}", e),
+            })?
+    }
+
+    async fn get_actor_status(&self) -> SendActorActionMessageResult {
+        self.addr
+            .send(SendActorActionMessage::status())
+            .await
+            .map_err(|e| PipelineLifecycleError::InternalCommunication {
+                reason: format!("Failed to send status message to store actor: {}", e),
             })?
     }
 }

@@ -97,3 +97,64 @@ where
 }
 
 //───brigde───────────────────────────────────────────────────────────────────────────
+
+use super::super::general_messages::{SendActorActionMessage, SendActorActionMessageResult};
+use super::super::general_ports::SendActionToActor;
+use async_trait::async_trait;
+pub struct ConsumerActorBridge<T, U>
+where
+    T: DataSource + Send + Sync + 'static,
+    U: SendDataToProcessor + Send + Sync + 'static,
+{
+    addr: Addr<DataConsumerActor<T, U>>,
+}
+
+impl<T, U> ConsumerActorBridge<T, U>
+where
+    T: DataSource + Send + Sync + 'static,
+    U: SendDataToProcessor + Send + Sync + 'static,
+{
+    pub fn new(addr: Addr<DataConsumerActor<T, U>>) -> Self {
+        Self { addr }
+    }
+}
+
+#[async_trait]
+impl<T, U> SendActionToActor for ConsumerActorBridge<T, U>
+where
+    T: DataSource + Send + Sync + 'static,
+    U: SendDataToProcessor + Send + Sync + 'static,
+{
+    async fn send_stop_actor(&self) -> SendActorActionMessageResult {
+        self.addr
+            .send(SendActorActionMessage::stop())
+            .await
+            .map_err(|e| {
+                crate::domain::error::PipelineLifecycleError::InternalCommunication {
+                    reason: format!("Failed to send stop message to consumer actor: {}", e),
+                }
+            })?
+    }
+
+    async fn send_restart_actor(&self) -> SendActorActionMessageResult {
+        self.addr
+            .send(SendActorActionMessage::restart())
+            .await
+            .map_err(|e| {
+                crate::domain::error::PipelineLifecycleError::InternalCommunication {
+                    reason: format!("Failed to send restart message to consumer actor: {}", e),
+                }
+            })?
+    }
+
+    async fn get_actor_status(&self) -> SendActorActionMessageResult {
+        self.addr
+            .send(SendActorActionMessage::status())
+            .await
+            .map_err(|e| {
+                crate::domain::error::PipelineLifecycleError::InternalCommunication {
+                    reason: format!("Failed to send status message to consumer actor: {}", e),
+                }
+            })?
+    }
+}
