@@ -1,21 +1,15 @@
 /// Test de integración del PipelineSupervisor.
 ///
-/// Verifica que el supervisor gestiona correctamente el ciclo de vida de los
-/// pipelines registrados: add, remove, list, stop, restart y status.
+/// Verifica que el supervisor gestiona correctamente las réplicas de un pipeline:
+/// add_replica, remove_replica, replica_count, stop_all, restart_all y status_all.
 ///
 /// ── Arquitectura de los dobles ───────────────────────────────────────────────
 ///
 ///   FakeDataSource → DataConsumerActor → DataProcessorActor → DataStoreActor
-///                         │ ConsumerActorBridge   │ ProcessorActorBridge   │ StoreActorBridge
-///                         ▼                       ▼                        ▼
-///                    (T = consumer)          (U = processor)          (V = store)
-///                     en PipelineAbstractionController
 ///
-/// Los tres actores son independientes entre sí en este test (no están
-/// conectados por el flujo de datos), porque aquí solo se prueba la capa del
-/// supervisor: add, remove, list, stop, restart y status.
-/// El flujo de datos (consumer → processor → store) está cubierto por
-/// el test `pipeline_integration`.
+/// Los tres actores son independientes entre sí (no conectados por flujo de datos)
+/// porque aquí solo se prueba la capa del supervisor.
+/// El flujo de datos está cubierto por el test `pipeline_integration`.
 use actix::prelude::*;
 use async_trait::async_trait;
 use std::sync::Arc;
@@ -29,18 +23,12 @@ use iot_bee::adapters::actor_system::pipeline_actor_module::{
 };
 use iot_bee::adapters::actor_system::supervisor_pipeline_life_time::{
     messges::{
-        AddPipelineMessage, ListPipelinesMessage, RemovePipelineMessage, RestartPipelineMessage,
-        StatusPipelineMessage, StopPipelineMessage,
+        AddReplicaMessage, RemoveReplicaMessage, ReplicaCountMessage, RestartAllReplicasMessage,
+        StatusAllReplicasMessage, StopAllReplicasMessage,
     },
     pipeline_abstraction::PipelineAbstractionController,
     pipeline_supervisor::PipelineSupervisor,
 };
-// Alias de tipos concretos solo para los helpers, no para TestController/TestSupervisor.
-type StoreBridge = StoreActorBridge<FakeExternalStore>;
-type ProcessorBridge = ProcessorActorBridge<StoreBridge>;
-type ConsumerBridge = ConsumerActorBridge<FakeDataSource, ProcessorBridge>;
-// El supervisor ya no necesita parámetros de tipo.
-type TestSupervisor = PipelineSupervisor;
 use iot_bee::domain::entities::data_consumer_types::DataConsumerRawType;
 use iot_bee::domain::error::IoTBeeError;
 use iot_bee::domain::outbound::{
@@ -48,7 +36,6 @@ use iot_bee::domain::outbound::{
     data_source::DataSource,
 };
 use iot_bee::logging::init_tracing;
-use iot_bee::logging::AppLogger;
 
 // ── Dobles de prueba ──────────────────────────────────────────────────────────
 
@@ -61,10 +48,7 @@ impl DataExternalStore for FakeExternalStore {
     }
 }
 
-/// Fuente de datos que retorna inmediatamente sin emitir ningún dato.
-/// El consumer queda en estado Consuming (el sender interno lo mantiene vivo)
-/// sin generar el bucle de reconexión, lo que es suficiente para testar
-/// el ciclo de vida en el supervisor.
+/// Fuente de datos que retorna inmediatamente sin emitir datos.
 struct FakeDataSource;
 
 #[async_trait]
@@ -77,17 +61,22 @@ impl DataSource for FakeDataSource {
     }
 }
 
-// ── Alias de tipos ──────────────────────────────────────────────────────────── 
+// ── Alias de tipos concretos para los helpers ─────────────────────────────────
+
+type StoreBridge = StoreActorBridge<FakeExternalStore>;
+type ProcessorBridge = ProcessorActorBridge<StoreBridge>;
+type ConsumerBridge = ConsumerActorBridge<FakeDataSource, ProcessorBridge>;
+
+// El supervisor no necesita parámetros de tipo tras el refactor Box<dyn>.
+type TestSupervisor = PipelineSupervisor;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/// Inicia un DataStoreActor y devuelve su bridge.
 fn crear_store_bridge() -> StoreBridge {
     let addr = DataStoreActor::new(Arc::new(FakeExternalStore)).start();
     StoreActorBridge::new(addr)
 }
 
-/// Inicia un DataProcessorActor (con su propio store interno) y devuelve su bridge.
 fn crear_processor_bridge() -> ProcessorBridge {
     let store_addr = DataStoreActor::new(Arc::new(FakeExternalStore)).start();
     let store_bridge = Arc::new(StoreActorBridge::new(store_addr));
@@ -95,8 +84,6 @@ fn crear_processor_bridge() -> ProcessorBridge {
     ProcessorActorBridge::new(processor_addr)
 }
 
-/// Inicia un DataConsumerActor (con FakeDataSource y su propio processor interno)
-/// y devuelve su bridge.
 fn crear_consumer_bridge() -> ConsumerBridge {
     let store_addr = DataStoreActor::new(Arc::new(FakeExternalStore)).start();
     let store_bridge = Arc::new(StoreActorBridge::new(store_addr));
@@ -116,247 +103,164 @@ fn crear_controller() -> PipelineAbstractionController {
     )
 }
 
-// ── Tests: gestión del registro ───────────────────────────────────────────────
+// ── Tests: gestión de réplicas ────────────────────────────────────────────────
 
 #[actix_rt::test]
-async fn supervisor_add_pipeline_registra_correctamente() {
+async fn supervisor_add_replica_registra_correctamente() {
     init_tracing();
-    let supervisor = TestSupervisor::new().start();
+    let supervisor = TestSupervisor::new(1).start();
 
     let resultado = supervisor
-        .send(AddPipelineMessage::new(1, crear_controller()))
+        .send(AddReplicaMessage::new(crear_controller()))
         .await
         .unwrap();
 
-    assert!(resultado.is_ok(), "Add debe retornar Ok(())");
+    assert!(resultado.is_ok(), "add_replica debe retornar Ok(count)");
+    assert_eq!(resultado.unwrap(), 1, "Debe haber 1 réplica");
 }
 
 #[actix_rt::test]
-async fn supervisor_add_pipeline_id_duplicado_retorna_error() {
+async fn supervisor_add_multiple_replicas_incrementa_contador() {
     init_tracing();
-    let supervisor = TestSupervisor::new().start();
+    let supervisor = TestSupervisor::new(1).start();
+
+    for i in 1..=3usize {
+        let count = supervisor
+            .send(AddReplicaMessage::new(crear_controller()))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(count, i, "El contador debe ser {} tras añadir la réplica {}", i, i);
+    }
+}
+
+#[actix_rt::test]
+async fn supervisor_count_sin_replicas_retorna_cero() {
+    init_tracing();
+    let supervisor = TestSupervisor::new(1).start();
+
+    let count = supervisor
+        .send(ReplicaCountMessage)
+        .await
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(count, 0, "Sin réplicas el contador debe ser 0");
+}
+
+#[actix_rt::test]
+async fn supervisor_remove_ultima_replica_disminuye_contador() {
+    init_tracing();
+    let supervisor = TestSupervisor::new(1).start();
 
     supervisor
-        .send(AddPipelineMessage::new(1, crear_controller()))
-        .await
-        .unwrap()
-        .unwrap();
-
-    let resultado = supervisor
-        .send(AddPipelineMessage::new(1, crear_controller()))
-        .await
-        .unwrap();
-
-    assert!(
-        resultado.is_err(),
-        "Registrar el mismo id dos veces debe retornar Err"
-    );
-}
-
-#[actix_rt::test]
-async fn supervisor_list_retorna_ids_registrados() {
-    init_tracing();
-    static LOGGER: AppLogger = AppLogger::new(
-        "test::supervisor_actor::supervisor_list_retorna_ids_registrados",
-    );
-    let supervisor = TestSupervisor::new().start();
-
-    supervisor
-        .send(AddPipelineMessage::new(10, crear_controller()))
+        .send(AddReplicaMessage::new(crear_controller()))
         .await
         .unwrap()
         .unwrap();
     supervisor
-        .send(AddPipelineMessage::new(20, crear_controller()))
+        .send(AddReplicaMessage::new(crear_controller()))
+        .await
+        .unwrap()
+        .unwrap();
+
+    supervisor.send(RemoveReplicaMessage).await.unwrap().unwrap();
+
+    let count = supervisor.send(ReplicaCountMessage).await.unwrap().unwrap();
+    assert_eq!(count, 1, "Debe quedar 1 réplica tras eliminar la última");
+}
+
+#[actix_rt::test]
+async fn supervisor_remove_cuando_vacio_retorna_error() {
+    init_tracing();
+    let supervisor = TestSupervisor::new(1).start();
+
+    let resultado = supervisor.send(RemoveReplicaMessage).await.unwrap();
+    assert!(resultado.is_err(), "Eliminar sin réplicas debe retornar Err");
+}
+
+// ── Tests: ciclo de vida sobre todas las réplicas ────────────────────────────
+
+#[actix_rt::test]
+async fn supervisor_stop_all_delega_stop_a_todas_las_replicas() {
+    init_tracing();
+    let supervisor = TestSupervisor::new(1).start();
+
+    supervisor
+        .send(AddReplicaMessage::new(crear_controller()))
         .await
         .unwrap()
         .unwrap();
     supervisor
-        .send(AddPipelineMessage::new(30, crear_controller()))
+        .send(AddReplicaMessage::new(crear_controller()))
         .await
         .unwrap()
         .unwrap();
 
-    let mut ids = supervisor
-        .send(ListPipelinesMessage)
+    let resultados = supervisor
+        .send(StopAllReplicasMessage)
         .await
         .unwrap()
         .unwrap();
-    ids.sort(); // HashMap no garantiza orden
 
-    LOGGER.info(&format!("IDs registrados: {:?}", ids));
-
-    assert_eq!(ids, vec![10, 20, 30]);
+    assert_eq!(resultados.len(), 2, "Debe haber resultados para 2 réplicas");
+    for (r_consumer, r_processor, r_store) in resultados {
+        assert_eq!(r_consumer.unwrap().status(), ActorStatus::Stopped);
+        assert_eq!(r_processor.unwrap().status(), ActorStatus::Stopped);
+        assert_eq!(r_store.unwrap().status(), ActorStatus::Stopped);
+    }
 }
 
 #[actix_rt::test]
-async fn supervisor_list_sin_pipelines_retorna_vec_vacio() {
+async fn supervisor_restart_all_delega_restart_a_todas_las_replicas() {
     init_tracing();
-    let supervisor = TestSupervisor::new().start();
-
-    let ids = supervisor
-        .send(ListPipelinesMessage)
-        .await
-        .unwrap()
-        .unwrap();
-
-    assert!(ids.is_empty(), "Sin pipelines registrados la lista debe estar vacía");
-}
-
-#[actix_rt::test]
-async fn supervisor_remove_pipeline_elimina_del_registro() {
-    init_tracing();
-    let supervisor = TestSupervisor::new().start();
+    let supervisor = TestSupervisor::new(1).start();
 
     supervisor
-        .send(AddPipelineMessage::new(1, crear_controller()))
+        .send(AddReplicaMessage::new(crear_controller()))
         .await
         .unwrap()
         .unwrap();
-
-    let resultado = supervisor
-        .send(RemovePipelineMessage::new(1))
-        .await
-        .unwrap();
-    assert!(resultado.is_ok(), "Remove debe retornar Ok(())");
-
-    let ids = supervisor
-        .send(ListPipelinesMessage)
-        .await
-        .unwrap()
-        .unwrap();
-    assert!(
-        ids.is_empty(),
-        "La lista debe quedar vacía tras eliminar el único pipeline"
-    );
-}
-
-#[actix_rt::test]
-async fn supervisor_remove_pipeline_inexistente_retorna_error() {
-    init_tracing();
-    let supervisor = TestSupervisor::new().start();
-
-    let resultado = supervisor
-        .send(RemovePipelineMessage::new(99))
-        .await
-        .unwrap();
-
-    assert!(resultado.is_err(), "Eliminar un id inexistente debe retornar Err");
-}
-
-// ── Tests: acciones de ciclo de vida ─────────────────────────────────────────
-
-#[actix_rt::test]
-async fn supervisor_stop_pipeline_delega_stop_a_los_tres_actores() {
-    init_tracing();
-    let supervisor = TestSupervisor::new().start();
     supervisor
-        .send(AddPipelineMessage::new(1, crear_controller()))
+        .send(AddReplicaMessage::new(crear_controller()))
         .await
         .unwrap()
         .unwrap();
 
-    let (r_consumer, r_processor, r_store) = supervisor
-        .send(StopPipelineMessage::new(1))
+    let resultados = supervisor
+        .send(RestartAllReplicasMessage)
         .await
-        .unwrap()  // MailboxError
-        .unwrap(); // Result<TripleResult, IoTBeeError>
-
-    assert_eq!(
-        r_consumer.unwrap().status(),
-        ActorStatus::Stopped,
-        "El actor consumer debe reportar Stopped"
-    );
-    assert_eq!(
-        r_processor.unwrap().status(),
-        ActorStatus::Stopped,
-        "El actor processor debe reportar Stopped"
-    );
-    assert_eq!(
-        r_store.unwrap().status(),
-        ActorStatus::Stopped,
-        "El actor store debe reportar Stopped"
-    );
-}
-
-#[actix_rt::test]
-async fn supervisor_stop_pipeline_inexistente_retorna_error() {
-    init_tracing();
-    let supervisor = TestSupervisor::new().start();
-
-    let resultado = supervisor
-        .send(StopPipelineMessage::new(99))
-        .await
+        .unwrap()
         .unwrap();
 
-    assert!(
-        resultado.is_err(),
-        "Stop sobre un id inexistente debe retornar Err"
-    );
+    assert_eq!(resultados.len(), 2, "Debe haber resultados para 2 réplicas");
+    for (r_consumer, r_processor, r_store) in resultados {
+        assert_eq!(r_consumer.unwrap().status(), ActorStatus::Restarting);
+        assert_eq!(r_processor.unwrap().status(), ActorStatus::Restarting);
+        assert_eq!(r_store.unwrap().status(), ActorStatus::Restarting);
+    }
 }
 
 #[actix_rt::test]
-async fn supervisor_restart_pipeline_delega_restart_a_los_tres_actores() {
+async fn supervisor_status_all_retorna_running_para_replicas_activas() {
     init_tracing();
-    let supervisor = TestSupervisor::new().start();
+    let supervisor = TestSupervisor::new(1).start();
+
     supervisor
-        .send(AddPipelineMessage::new(1, crear_controller()))
+        .send(AddReplicaMessage::new(crear_controller()))
         .await
         .unwrap()
         .unwrap();
 
-    let (r_consumer, r_processor, r_store) = supervisor
-        .send(RestartPipelineMessage::new(1))
+    let resultados = supervisor
+        .send(StatusAllReplicasMessage)
         .await
         .unwrap()
         .unwrap();
 
-    assert_eq!(
-        r_consumer.unwrap().status(),
-        ActorStatus::Restarting,
-        "El actor consumer debe reportar Restarting"
-    );
-    assert_eq!(
-        r_processor.unwrap().status(),
-        ActorStatus::Restarting,
-        "El actor processor debe reportar Restarting"
-    );
-    assert_eq!(
-        r_store.unwrap().status(),
-        ActorStatus::Restarting,
-        "El actor store debe reportar Restarting"
-    );
-}
-
-#[actix_rt::test]
-async fn supervisor_status_pipeline_retorna_running_para_actores_activos() {
-    init_tracing();
-    let supervisor = TestSupervisor::new().start();
-    supervisor
-        .send(AddPipelineMessage::new(1, crear_controller()))
-        .await
-        .unwrap()
-        .unwrap();
-
-    let (r_consumer, r_processor, r_store) = supervisor
-        .send(StatusPipelineMessage::new(1))
-        .await
-        .unwrap()
-        .unwrap();
-
-    assert_eq!(
-        r_consumer.unwrap().status(),
-        ActorStatus::Running,
-        "El actor consumer debe reportar Running"
-    );
-    assert_eq!(
-        r_processor.unwrap().status(),
-        ActorStatus::Running,
-        "El actor processor debe reportar Running"
-    );
-    assert_eq!(
-        r_store.unwrap().status(),
-        ActorStatus::Running,
-        "El actor store debe reportar Running"
-    );
+    assert_eq!(resultados.len(), 1, "Debe haber resultados para 1 réplica");
+    let (r_consumer, r_processor, r_store) = resultados.into_iter().next().unwrap();
+    assert_eq!(r_consumer.unwrap().status(), ActorStatus::Running);
+    assert_eq!(r_processor.unwrap().status(), ActorStatus::Running);
+    assert_eq!(r_store.unwrap().status(), ActorStatus::Running);
 }

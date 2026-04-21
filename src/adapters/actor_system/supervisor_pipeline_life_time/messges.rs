@@ -1,97 +1,66 @@
 use actix::prelude::*;
 
-use super::pipeline_abstraction::{PipelineAbstractionController, TripleResult};
+use super::pipeline_abstraction::{AllReplicasResult, PipelineAbstractionController};
 use crate::domain::error::IoTBeeError;
 
-// ── AddPipeline ───────────────────────────────────────────────────────────────
-// Registra un nuevo pipeline en el supervisor. Operación síncrona.
+// ── AddReplica ────────────────────────────────────────────────────────────────
+// Añade una réplica al supervisor. Devuelve el número total de réplicas.
 
-pub struct AddPipelineMessage {
-    pub id: u32,
+pub struct AddReplicaMessage {
     pub controller: PipelineAbstractionController,
 }
 
-impl AddPipelineMessage {
-    pub fn new(id: u32, controller: PipelineAbstractionController) -> Self {
-        Self { id, controller }
+impl AddReplicaMessage {
+    pub fn new(controller: PipelineAbstractionController) -> Self {
+        Self { controller }
     }
 }
 
-impl Message for AddPipelineMessage {
+impl Message for AddReplicaMessage {
+    type Result = Result<usize, IoTBeeError>;
+}
+
+// ── RemoveReplica ─────────────────────────────────────────────────────────────
+// Elimina la última réplica (escala hacia abajo). Error si no hay réplicas.
+
+pub struct RemoveReplicaMessage;
+
+impl Message for RemoveReplicaMessage {
     type Result = Result<(), IoTBeeError>;
 }
 
-// ── RemovePipeline ────────────────────────────────────────────────────────────
-// Elimina el pipeline del registro. Operación síncrona.
+// ── ReplicaCount ──────────────────────────────────────────────────────────────
+// Devuelve el número de réplicas activas.
 
-pub struct RemovePipelineMessage {
-    pub id: u32,
+pub struct ReplicaCountMessage;
+
+impl Message for ReplicaCountMessage {
+    type Result = Result<usize, IoTBeeError>;
 }
 
-impl RemovePipelineMessage {
-    pub fn new(id: u32) -> Self {
-        Self { id }
-    }
+// ── StopAllReplicas ───────────────────────────────────────────────────────────
+// Envía stop a todos los actores de todas las réplicas activas.
+
+pub struct StopAllReplicasMessage;
+
+impl Message for StopAllReplicasMessage {
+    type Result = Result<AllReplicasResult, IoTBeeError>;
 }
 
-impl Message for RemovePipelineMessage {
-    type Result = Result<(), IoTBeeError>;
+// ── RestartAllReplicas ────────────────────────────────────────────────────────
+// Envía restart a todos los actores de todas las réplicas activas.
+
+pub struct RestartAllReplicasMessage;
+
+impl Message for RestartAllReplicasMessage {
+    type Result = Result<AllReplicasResult, IoTBeeError>;
 }
 
-// ── StopPipeline ──────────────────────────────────────────────────────────────
-// Envía stop a los tres actores. Operación asíncrona (ResponseFuture).
+// ── StatusAllReplicas ─────────────────────────────────────────────────────────
+// Consulta el estado de todos los actores de todas las réplicas activas.
 
-pub struct StopPipelineMessage {
-    pub id: u32,
-}
+pub struct StatusAllReplicasMessage;
 
-impl StopPipelineMessage {
-    pub fn new(id: u32) -> Self {
-        Self { id }
-    }
-}
-
-impl Message for StopPipelineMessage {
-    type Result = Result<TripleResult, IoTBeeError>;
-}
-
-// ── RestartPipeline ───────────────────────────────────────────────────────────
-
-pub struct RestartPipelineMessage {
-    pub id: u32,
-}
-
-impl RestartPipelineMessage {
-    pub fn new(id: u32) -> Self {
-        Self { id }
-    }
-}
-
-impl Message for RestartPipelineMessage {
-    type Result = Result<TripleResult, IoTBeeError>;
-}
-
-// ── StatusPipeline ────────────────────────────────────────────────────────────
-
-pub struct StatusPipelineMessage {
-    pub id: u32,
-}
-
-impl StatusPipelineMessage {
-    pub fn new(id: u32) -> Self {
-        Self { id }
-    }
-}
-
-impl Message for StatusPipelineMessage {
-    type Result = Result<TripleResult, IoTBeeError>;
-}
-
-// ── ListPipelines ─────────────────────────────────────────────────────────────
-// Devuelve los ids de todos los pipelines registrados. Operación síncrona.
-
-pub struct ListPipelinesMessage;
-
-impl Message for ListPipelinesMessage {
-    type Result = Result<Vec<u32>, IoTBeeError>;
+impl Message for StatusAllReplicasMessage {
+    type Result = Result<AllReplicasResult, IoTBeeError>;
 }

@@ -33,6 +33,11 @@ pub trait DataSourcesUseCases {
         data_source_id: &u32,
     ) -> Result<PipelineDataSourceOutputModel, IoTBeeError>;
     async fn list_data_sources(&self) -> Result<Vec<PipelineDataSourceOutputModel>, IoTBeeError>;
+
+
+    //Caso de eliminar un data source que esta siendo usado por un pipeline:
+    async fn delete_data_source(&self, data_source_id: &u32) -> Result<(), IoTBeeError>;
+
 }
 
 pub struct DataSourcesUseCasesImpl<T: PipelineDataSourceRepository + Send + Sync> {
@@ -155,4 +160,10 @@ where
                 e
             })
     }
+
+
+    async fn delete_data_source(&self, data_source_id:&u32) -> Result<(),IoTBeeError>{
+        unimplemented!() 
+    }
+
 }

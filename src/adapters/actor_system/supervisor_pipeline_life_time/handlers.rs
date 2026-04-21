@@ -1,89 +1,111 @@
 use actix::prelude::*;
 
 use super::messges::{
-    AddPipelineMessage, ListPipelinesMessage, RemovePipelineMessage, RestartPipelineMessage,
-    StatusPipelineMessage, StopPipelineMessage,
+    AddReplicaMessage, RemoveReplicaMessage, ReplicaCountMessage, RestartAllReplicasMessage,
+    StatusAllReplicasMessage, StopAllReplicasMessage,
 };
-use super::pipeline_abstraction::TripleResult;
+use super::pipeline_abstraction::AllReplicasResult;
 use super::pipeline_supervisor::PipelineSupervisor;
 use crate::domain::error::IoTBeeError;
 
-// ── AddPipeline ── síncrono ───────────────────────────────────────────────────
+// ── AddReplica ── síncrono ────────────────────────────────────────────────────
 
-impl Handler<AddPipelineMessage> for PipelineSupervisor {
+impl Handler<AddReplicaMessage> for PipelineSupervisor {
+    type Result = Result<usize, IoTBeeError>;
+
+    fn handle(&mut self, msg: AddReplicaMessage, _ctx: &mut Context<Self>) -> Self::Result {
+        self.replica_registry.add_replica(msg.controller)
+    }
+}
+
+// ── RemoveReplica ── síncrono ─────────────────────────────────────────────────
+
+impl Handler<RemoveReplicaMessage> for PipelineSupervisor {
     type Result = Result<(), IoTBeeError>;
+
+    fn handle(&mut self, _msg: RemoveReplicaMessage, _ctx: &mut Context<Self>) -> Self::Result {
+        self.replica_registry.remove_last_replica()
+    }
+}
+
+// ── ReplicaCount ── síncrono ──────────────────────────────────────────────────
+
+impl Handler<ReplicaCountMessage> for PipelineSupervisor {
+    type Result = Result<usize, IoTBeeError>;
+
+    fn handle(&mut self, _msg: ReplicaCountMessage, _ctx: &mut Context<Self>) -> Self::Result {
+        self.replica_registry.replica_count()
+    }
+}
+
+// ── StopAllReplicas ── asíncrono ──────────────────────────────────────────────
+//
+// Patrón: all_arcs() clona los Arc y libera el RwLock en la parte síncrona
+// del handler, ANTES de entrar en Box::pin(async move {}).
+// El mailbox sigue procesando mensajes mientras el future recorre las réplicas.
+
+impl Handler<StopAllReplicasMessage> for PipelineSupervisor {
+    type Result = ResponseFuture<Result<AllReplicasResult, IoTBeeError>>;
+
+    fn handle(&mut self, _msg: StopAllReplicasMessage, _ctx: &mut Context<Self>) -> Self::Result {
+        let replicas = match self.replica_registry.all_arcs() {
+            Ok(r) => r,
+            Err(e) => return Box::pin(async move { Err(e) }),
+        };
+        Box::pin(async move {
+            let mut results = Vec::with_capacity(replicas.len());
+            for replica in replicas {
+                results.push(replica.stop().await);
+            }
+            Ok(results)
+        })
+    }
+}
+
+// ── RestartAllReplicas ── asíncrono ───────────────────────────────────────────
+
+impl Handler<RestartAllReplicasMessage> for PipelineSupervisor {
+    type Result = ResponseFuture<Result<AllReplicasResult, IoTBeeError>>;
 
     fn handle(
         &mut self,
-        msg: AddPipelineMessage,
+        _msg: RestartAllReplicasMessage,
         _ctx: &mut Context<Self>,
     ) -> Self::Result {
-        self.child_registry.add(msg.id, msg.controller)
-    }
-}
-
-// ── RemovePipeline ── síncrono ────────────────────────────────────────────────
-
-impl Handler<RemovePipelineMessage> for PipelineSupervisor {
-    type Result = Result<(), IoTBeeError>;
-
-    fn handle(&mut self, msg: RemovePipelineMessage, _ctx: &mut Context<Self>) -> Self::Result {
-        self.child_registry.remove(msg.id).map(|_| ())
-    }
-}
-
-// ── ListPipelines ── síncrono ─────────────────────────────────────────────────
-
-impl Handler<ListPipelinesMessage> for PipelineSupervisor {
-    type Result = Result<Vec<u32>, IoTBeeError>;
-
-    fn handle(&mut self, _msg: ListPipelinesMessage, _ctx: &mut Context<Self>) -> Self::Result {
-        self.child_registry.list_ids()
-    }
-}
-
-// ── StopPipeline ── asíncrono (ResponseFuture) ────────────────────────────────
-//
-// Patrón: get_controller() clona el Arc y libera el RwLock en la parte
-// síncrona del handler, ANTES de entrar en Box::pin(async move {}).
-// El mailbox sigue procesando mensajes mientras el future está en vuelo.
-
-impl Handler<StopPipelineMessage> for PipelineSupervisor {
-    type Result = ResponseFuture<Result<TripleResult, IoTBeeError>>;
-
-    fn handle(&mut self, msg: StopPipelineMessage, _ctx: &mut Context<Self>) -> Self::Result {
-        let controller = match self.child_registry.get_controller(msg.id) {
-            Ok(c) => c,
+        let replicas = match self.replica_registry.all_arcs() {
+            Ok(r) => r,
             Err(e) => return Box::pin(async move { Err(e) }),
         };
-        Box::pin(async move { Ok(controller.stop().await) })
+        Box::pin(async move {
+            let mut results = Vec::with_capacity(replicas.len());
+            for replica in replicas {
+                results.push(replica.restart().await);
+            }
+            Ok(results)
+        })
     }
 }
 
-// ── RestartPipeline ── asíncrono ──────────────────────────────────────────────
+// ── StatusAllReplicas ── asíncrono ────────────────────────────────────────────
 
-impl Handler<RestartPipelineMessage> for PipelineSupervisor {
-    type Result = ResponseFuture<Result<TripleResult, IoTBeeError>>;
+impl Handler<StatusAllReplicasMessage> for PipelineSupervisor {
+    type Result = ResponseFuture<Result<AllReplicasResult, IoTBeeError>>;
 
-    fn handle(&mut self, msg: RestartPipelineMessage, _ctx: &mut Context<Self>) -> Self::Result {
-        let controller = match self.child_registry.get_controller(msg.id) {
-            Ok(c) => c,
+    fn handle(
+        &mut self,
+        _msg: StatusAllReplicasMessage,
+        _ctx: &mut Context<Self>,
+    ) -> Self::Result {
+        let replicas = match self.replica_registry.all_arcs() {
+            Ok(r) => r,
             Err(e) => return Box::pin(async move { Err(e) }),
         };
-        Box::pin(async move { Ok(controller.restart().await) })
-    }
-}
-
-// ── StatusPipeline ── asíncrono ───────────────────────────────────────────────
-
-impl Handler<StatusPipelineMessage> for PipelineSupervisor {
-    type Result = ResponseFuture<Result<TripleResult, IoTBeeError>>;
-
-    fn handle(&mut self, msg: StatusPipelineMessage, _ctx: &mut Context<Self>) -> Self::Result {
-        let controller = match self.child_registry.get_controller(msg.id) {
-            Ok(c) => c,
-            Err(e) => return Box::pin(async move { Err(e) }),
-        };
-        Box::pin(async move { Ok(controller.status().await) })
+        Box::pin(async move {
+            let mut results = Vec::with_capacity(replicas.len());
+            for replica in replicas {
+                results.push(replica.status().await);
+            }
+            Ok(results)
+        })
     }
 }
