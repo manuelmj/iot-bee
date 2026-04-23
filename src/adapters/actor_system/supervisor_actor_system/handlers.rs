@@ -1,5 +1,8 @@
 use actix::prelude::*;
 
+use super::super::supervisor_pipeline_life_time::{
+    actor_wrapper::SupervisorPipelineBridge, pipeline_supervisor::PipelineSupervisor,
+};
 use super::messages::{
     CreatePipelineMessage, DeletePipelineMessage, ListPipelinesMessage, RestartPipelineMessage,
     StatusPipelineMessage, StopPipelineMessage, SystemAddReplicaMessage, SystemRemoveReplicaMessage,
@@ -15,13 +18,33 @@ fn not_found(pipeline_id: u32) -> IoTBeeError {
     .into()
 }
 
-// ── CreatePipeline ── síncrono ────────────────────────────────────────────────
+// ── CreatePipeline ── asíncrono (ResponseActFuture) ───────────────────────────
 
 impl Handler<CreatePipelineMessage> for SystemActorSupervisor {
-    type Result = Result<(), IoTBeeError>;
+    type Result = ResponseActFuture<Self, Result<(), IoTBeeError>>;
 
     fn handle(&mut self, msg: CreatePipelineMessage, _ctx: &mut Context<Self>) -> Self::Result {
-        self.create_pipeline(msg.pipeline_id)
+        let pipeline_id = msg.pipeline_id;
+        if self.get_bridge(pipeline_id).is_some() {
+            return Box::pin(fut::ready(Err(PipelineLifecycleError::AlreadyRunning {
+                pipeline_id: pipeline_id.to_string(),
+            }
+            .into())));
+        }
+        let addr = PipelineSupervisor::new(pipeline_id).start();
+        let bridge = SupervisorPipelineBridge::new(addr);
+        Box::pin(
+            async move {
+                bridge.start_pipeline().await?;
+                Ok(bridge)
+            }
+            .into_actor(self)
+            .map(move |result: Result<SupervisorPipelineBridge, IoTBeeError>, actor, _ctx| {
+                let bridge = result?;
+                actor.insert_pipeline(pipeline_id, bridge);
+                Ok(())
+            }),
+        )
     }
 }
 

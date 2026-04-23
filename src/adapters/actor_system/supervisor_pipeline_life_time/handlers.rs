@@ -2,11 +2,39 @@ use actix::prelude::*;
 
 use super::messges::{
     AddReplicaMessage, RemoveReplicaMessage, ReplicaCountMessage, RestartAllReplicasMessage,
-    StatusAllReplicasMessage, StopAllReplicasMessage,
+    StatusAllReplicasMessage, StopAllReplicasMessage,StartPipelineMessage
 };
 use super::pipeline_abstraction::AllReplicasResult;
 use super::pipeline_supervisor::PipelineSupervisor;
 use crate::domain::error::IoTBeeError;
+
+
+
+use crate::adapters::actor_system::pipeline_actor_module::store_actor::data_store_actor::{StoreActorBridge};
+
+
+
+
+// ── StartPipeline ─────────────────────────────────────────────
+
+impl Handler<StartPipelineMessage> for PipelineSupervisor {
+    type Result = Result<(), IoTBeeError>;
+
+    fn handle(&mut self, _msg: StartPipelineMessage, _ctx: &mut Context<Self>) -> Self::Result {
+        //para iniciar los pipelines entonces necesitamos
+        //1. data source Actor con su connector de consumo
+        //2. data processor Actor con su lógica de procesamiento
+        //3. data store Actor con su connector de almacenamiento
+        //4. cantidad de replicas iniciales que debe tener el pipeline 
+        let replica_count = self.pipeline_configuration().pipeline_replica_count;
+
+        for _ in 0..replica_count {
+            
+        }
+
+        Ok(())
+    }
+}
 
 // ── AddReplica ── síncrono ────────────────────────────────────────────────────
 
@@ -14,7 +42,7 @@ impl Handler<AddReplicaMessage> for PipelineSupervisor {
     type Result = Result<usize, IoTBeeError>;
 
     fn handle(&mut self, msg: AddReplicaMessage, _ctx: &mut Context<Self>) -> Self::Result {
-        self.replica_registry.add_replica(msg.controller)
+        self.replica_registry().add_replica(msg.controller)
     }
 }
 
@@ -24,7 +52,7 @@ impl Handler<RemoveReplicaMessage> for PipelineSupervisor {
     type Result = Result<(), IoTBeeError>;
 
     fn handle(&mut self, _msg: RemoveReplicaMessage, _ctx: &mut Context<Self>) -> Self::Result {
-        self.replica_registry.remove_last_replica()
+        self.replica_registry().remove_last_replica()
     }
 }
 
@@ -34,7 +62,7 @@ impl Handler<ReplicaCountMessage> for PipelineSupervisor {
     type Result = Result<usize, IoTBeeError>;
 
     fn handle(&mut self, _msg: ReplicaCountMessage, _ctx: &mut Context<Self>) -> Self::Result {
-        self.replica_registry.replica_count()
+        self.replica_registry().replica_count()
     }
 }
 
@@ -48,7 +76,7 @@ impl Handler<StopAllReplicasMessage> for PipelineSupervisor {
     type Result = ResponseFuture<Result<AllReplicasResult, IoTBeeError>>;
 
     fn handle(&mut self, _msg: StopAllReplicasMessage, _ctx: &mut Context<Self>) -> Self::Result {
-        let replicas = match self.replica_registry.all_arcs() {
+        let replicas = match self.replica_registry().all_arcs() {
             Ok(r) => r,
             Err(e) => return Box::pin(async move { Err(e) }),
         };
@@ -72,7 +100,7 @@ impl Handler<RestartAllReplicasMessage> for PipelineSupervisor {
         _msg: RestartAllReplicasMessage,
         _ctx: &mut Context<Self>,
     ) -> Self::Result {
-        let replicas = match self.replica_registry.all_arcs() {
+        let replicas = match self.replica_registry().all_arcs() {
             Ok(r) => r,
             Err(e) => return Box::pin(async move { Err(e) }),
         };
@@ -96,7 +124,7 @@ impl Handler<StatusAllReplicasMessage> for PipelineSupervisor {
         _msg: StatusAllReplicasMessage,
         _ctx: &mut Context<Self>,
     ) -> Self::Result {
-        let replicas = match self.replica_registry.all_arcs() {
+        let replicas = match self.replica_registry().all_arcs() {
             Ok(r) => r,
             Err(e) => return Box::pin(async move { Err(e) }),
         };

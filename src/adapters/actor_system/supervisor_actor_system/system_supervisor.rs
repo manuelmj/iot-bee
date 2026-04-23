@@ -2,10 +2,7 @@ use std::collections::HashMap;
 
 use actix::prelude::*;
 
-use super::super::supervisor_pipeline_life_time::{
-    actor_wrapper::SupervisorPipelineBridge, pipeline_supervisor::PipelineSupervisor,
-};
-use crate::domain::error::{IoTBeeError, PipelineLifecycleError};
+use super::super::supervisor_pipeline_life_time::actor_wrapper::SupervisorPipelineBridge;
 use crate::logging::AppLogger;
 
 static LOGGER: AppLogger = AppLogger::new(
@@ -21,7 +18,7 @@ static LOGGER: AppLogger = AppLogger::new(
 //
 // Helpers pub(super) para que handlers.rs pueda usarlos sin duplicar lógica:
 //   get_bridge(id)          → clona el bridge si existe
-//   create_pipeline(id)     → crea un PipelineSupervisor nuevo
+//   insert_pipeline(id, b)  → registra un bridge nuevo
 //   remove_pipeline(id)     → extrae y devuelve el bridge
 //   list_pipeline_ids()     → copia de las claves
 
@@ -41,19 +38,9 @@ impl SystemActorSupervisor {
         self.supervisors.get(&pipeline_id).cloned()
     }
 
-    /// Crea un PipelineSupervisor para el pipeline dado.
-    /// Devuelve Err si ya existe uno con ese id.
-    pub(super) fn create_pipeline(&mut self, pipeline_id: u32) -> Result<(), IoTBeeError> {
-        if self.supervisors.contains_key(&pipeline_id) {
-            return Err(PipelineLifecycleError::AlreadyRunning {
-                pipeline_id: pipeline_id.to_string(),
-            }
-            .into());
-        }
-        let addr = PipelineSupervisor::new(pipeline_id).start();
-        self.supervisors
-            .insert(pipeline_id, SupervisorPipelineBridge::new(addr));
-        Ok(())
+    /// Registra un bridge nuevo para el pipeline dado.
+    pub(super) fn insert_pipeline(&mut self, pipeline_id: u32, bridge: SupervisorPipelineBridge) {
+        self.supervisors.insert(pipeline_id, bridge);
     }
 
     /// Elimina y devuelve el bridge del pipeline dado.
@@ -61,6 +48,7 @@ impl SystemActorSupervisor {
         &mut self,
         pipeline_id: u32,
     ) -> Option<SupervisorPipelineBridge> {
+        
         self.supervisors.remove(&pipeline_id)
     }
 
@@ -90,6 +78,7 @@ impl Supervised for SystemActorSupervisor {
         LOGGER.warn("SystemActorSupervisor is restarting.");
     }
 }
+
 
 
 

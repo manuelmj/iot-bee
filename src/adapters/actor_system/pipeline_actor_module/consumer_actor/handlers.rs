@@ -8,7 +8,6 @@ use crate::adapters::actor_system::pipeline_actor_module::consumer_actor::{
 };
 use crate::adapters::actor_system::pipeline_actor_module::general_ports::SendDataToProcessor;
 use crate::domain::entities::data_consumer_types::DataConsumerRawType;
-use crate::domain::outbound::data_source::DataSource;
 use crate::logging::AppLogger;
 
 static LOGGER: AppLogger = AppLogger::new(
@@ -17,9 +16,8 @@ static LOGGER: AppLogger = AppLogger::new(
 
 const CHANNEL_CAPACITY: usize = 100;
 
-impl<T, U> Handler<ConsumerActorActionMessage> for DataConsumerActor<T, U>
+impl<U> Handler<ConsumerActorActionMessage> for DataConsumerActor< U>
 where
-    T: DataSource + Send + Sync + 'static,
     U: SendDataToProcessor + Send + Sync + 'static,
 {
     type Result = ResponseActFuture<Self, ConsumerActorState>;
@@ -127,9 +125,8 @@ use crate::adapters::actor_system::pipeline_actor_module::general_messages::{
     ActorActions, ResponseActorActionMessage, SendActorActionMessage, SendActorActionMessageResult,
 };
 
-impl<T, U> Handler<SendActorActionMessage> for DataConsumerActor<T, U>
+impl<U> Handler<SendActorActionMessage> for DataConsumerActor<U>
 where
-    T: DataSource + Send + Sync + 'static,
     U: SendDataToProcessor + Send + Sync + 'static,
 {
     type Result = ResponseFuture<SendActorActionMessageResult>;

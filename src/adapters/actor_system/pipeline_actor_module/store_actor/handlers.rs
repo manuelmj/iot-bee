@@ -1,6 +1,5 @@
 use super::messages::{SendDataToStoreMessage,StoreActorResult};
 use super::data_store_actor::DataStoreActor;
-use crate::domain::outbound::data_external_store::DataExternalStore;
 use actix::prelude::*;
 use crate::logging::AppLogger;
 
@@ -12,9 +11,7 @@ use async_trait::async_trait;
 
 
 #[async_trait]
-impl<T> Handler<SendDataToStoreMessage> for DataStoreActor<T>
-where
-    T: DataExternalStore + Send + Sync + 'static,
+impl Handler<SendDataToStoreMessage> for DataStoreActor
 {
     type Result = ResponseFuture<StoreActorResult>;
 
@@ -36,9 +33,7 @@ use crate::adapters::actor_system::pipeline_actor_module::general_messages::{
     ActorActions, ResponseActorActionMessage, SendActorActionMessage, SendActorActionMessageResult,
 };
 
-impl<T> Handler<SendActorActionMessage> for DataStoreActor<T>
-where
-    T: DataExternalStore + Send + Sync + 'static,
+impl Handler<SendActorActionMessage> for DataStoreActor
 {
     type Result = ResponseFuture<SendActorActionMessageResult>;
 

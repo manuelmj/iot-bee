@@ -11,6 +11,7 @@ use crate::domain::error::IoTBeeError;
 
 pub struct CreatePipelineMessage {
     pub pipeline_id: u32,
+    //debe recibir toda la data necesaria para que el pipeline pueda ser usado.
 }
 
 impl CreatePipelineMessage {

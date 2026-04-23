@@ -14,20 +14,21 @@ static LOGGER: AppLogger = AppLogger::new(
 );
 
 // ── Actor ────────────────────────────────────────────────────────────────────
-
-pub struct DataProcessorActor<T: SendDataToStore + Send + Sync + 'static> {
-    data_store: Arc<T>,
+type DataStoreThreadSafe = Arc<dyn SendDataToStore + Send + Sync + 'static>;
+pub struct DataProcessorActor {
+    data_store: DataStoreThreadSafe, // esto debe ser el actor que implementa SendDataToStore
 }
-impl<T: SendDataToStore + Send + Sync + 'static> DataProcessorActor<T> {
-    pub fn new(data_store: Arc<T>) -> Self {
+
+impl DataProcessorActor {
+    pub fn new(data_store: DataStoreThreadSafe) -> Self {
         Self { data_store }
     }
-    pub fn data_store(&self) -> Arc<T> {
+    pub fn data_store(&self) -> DataStoreThreadSafe {
         Arc::clone(&self.data_store)
     }
 }
 
-impl<T: SendDataToStore + Send + Sync + 'static> Actor for DataProcessorActor<T> {
+impl Actor for DataProcessorActor {
     type Context = Context<Self>;
 
     fn started(&mut self, _ctx: &mut Self::Context) {
@@ -39,7 +40,7 @@ impl<T: SendDataToStore + Send + Sync + 'static> Actor for DataProcessorActor<T>
     }
 }
 
-impl<T: SendDataToStore + Send + Sync + 'static> Supervised for DataProcessorActor<T> {
+impl Supervised for DataProcessorActor {
     fn restarting(&mut self, _ctx: &mut Self::Context) {
         LOGGER.warn("DataProcessorActor is restarting.");
     }
@@ -50,21 +51,20 @@ impl<T: SendDataToStore + Send + Sync + 'static> Supervised for DataProcessorAct
 // El consumer nunca conoce al actor; solo conoce el trait.
 //──────────────────────────────────────────────────────────────────────────────
 
-pub struct ProcessorActorBridge<T: SendDataToStore + Send + Sync + 'static> {
-    addr: Addr<DataProcessorActor<T>>,
+pub struct ProcessorActorBridge {
+    addr: Addr<DataProcessorActor>,
 }
 //este es el que debo inyectar en el consumer actor para que pueda enviarle datos al processor actor sin conocerlo directamente.
-impl<T> ProcessorActorBridge<T> 
-where T: SendDataToStore + Send + Sync + 'static 
-{
-    pub fn new(addr: Addr<DataProcessorActor<T>>) -> Self {
+impl ProcessorActorBridge {
+    pub fn start_new_processor_actor(data_store: DataStoreThreadSafe) -> Self {
+        let actor = DataProcessorActor::new(Arc::clone(&data_store));
+        let addr = Supervisor::start(move |_ctx| {actor});
         Self { addr }
     }
 }
 
 #[async_trait]
-impl<T> SendDataToProcessor for ProcessorActorBridge<T>
-where T: SendDataToStore + Send + Sync + 'static {  
+impl SendDataToProcessor for ProcessorActorBridge {  
     async fn send(&self, data: &DataConsumerRawType) -> Result<(), IoTBeeError> {
         self.addr
             .send(ProcessDataMessage::new(data.clone()))
@@ -78,8 +78,7 @@ use super::super::general_messages::{SendActorActionMessageResult, SendActorActi
 use super::super::general_ports::SendActionToActor;
 
 #[async_trait]
-impl <T> SendActionToActor for ProcessorActorBridge<T>
-where T: SendDataToStore + Send + Sync + 'static 
+impl SendActionToActor for ProcessorActorBridge
 {
     
 

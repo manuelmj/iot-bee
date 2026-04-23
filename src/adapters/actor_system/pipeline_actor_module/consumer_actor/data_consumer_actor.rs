@@ -15,21 +15,19 @@ static LOGGER: AppLogger = AppLogger::new(
 );
 
 pub struct DataConsumerActor<
-    T: DataSource + Send + Sync + 'static,
     U: SendDataToProcessor + Send + Sync + 'static,
 > {
-    pub data_source: Arc<T>,
-    pub data_processor: Arc<U>,
+    pub data_source: Arc<dyn DataSource + Send + Sync + 'static>,
+    pub data_processor: Arc<U>, // esto debe ser el actor que implementa SendDataToProcessor
     state: ConsumerActorState,
     sender: Option<Sender<DataConsumerRawType>>,
 }
 
-impl<T, U> DataConsumerActor<T, U>
+impl<U> DataConsumerActor<U>
 where
-    T: DataSource + Send + Sync + 'static,
     U: SendDataToProcessor + Send + Sync + 'static,
 {
-    pub fn new(data_source: Arc<T>, data_processor: Arc<U>) -> Self {
+    pub fn new(data_source: Arc<dyn DataSource + Send + Sync + 'static>, data_processor: Arc<U>) -> Self {
         DataConsumerActor {
             data_source,
             data_processor,
@@ -37,7 +35,7 @@ where
             sender: None,
         }
     }
-    pub fn data_source(&self) -> Arc<T> {
+    pub fn data_source(&self) -> Arc<dyn DataSource + Send + Sync + 'static> {
         Arc::clone(&self.data_source)
     }
     pub fn data_processor(&self) -> Arc<U> {
@@ -59,9 +57,8 @@ where
     }
 }
 
-impl<T, U> Actor for DataConsumerActor<T, U>
+impl<U> Actor for DataConsumerActor<U>
 where
-    T: DataSource + Send + Sync + 'static,
     U: SendDataToProcessor + Send + Sync + 'static,
 {
     type Context = Context<Self>;
@@ -84,9 +81,8 @@ where
     }
 }
 
-impl<T, U> Supervised for DataConsumerActor<T, U>
+impl<U> Supervised for DataConsumerActor<U>
 where
-    T: DataSource + Send + Sync + 'static,
     U: SendDataToProcessor + Send + Sync + 'static,
 {
     fn restarting(&mut self, _ctx: &mut Self::Context) {
@@ -101,28 +97,25 @@ where
 use super::super::general_messages::{SendActorActionMessage, SendActorActionMessageResult};
 use super::super::general_ports::SendActionToActor;
 use async_trait::async_trait;
-pub struct ConsumerActorBridge<T, U>
+pub struct ConsumerActorBridge<U>
 where
-    T: DataSource + Send + Sync + 'static,
     U: SendDataToProcessor + Send + Sync + 'static,
 {
-    addr: Addr<DataConsumerActor<T, U>>,
+    addr: Addr<DataConsumerActor<U>>,
 }
 
-impl<T, U> ConsumerActorBridge<T, U>
+impl<U> ConsumerActorBridge<U>
 where
-    T: DataSource + Send + Sync + 'static,
     U: SendDataToProcessor + Send + Sync + 'static,
 {
-    pub fn new(addr: Addr<DataConsumerActor<T, U>>) -> Self {
+    pub fn new(addr: Addr<DataConsumerActor<U>>) -> Self {
         Self { addr }
     }
 }
 
 #[async_trait]
-impl<T, U> SendActionToActor for ConsumerActorBridge<T, U>
+impl<U> SendActionToActor for ConsumerActorBridge<U>
 where
-    T: DataSource + Send + Sync + 'static,
     U: SendDataToProcessor + Send + Sync + 'static,
 {
     async fn send_stop_actor(&self) -> SendActorActionMessageResult {

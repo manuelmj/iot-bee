@@ -3,6 +3,13 @@ use actix::prelude::*;
 use super::pipeline_abstraction::{AllReplicasResult, PipelineAbstractionController};
 use crate::domain::error::IoTBeeError;
 
+// StartPipeline
+// Inicia todos el pipeline
+pub struct StartPipelineMessage;
+impl Message for StartPipelineMessage {
+    type Result = Result<(), IoTBeeError>;
+}
+
 // ── AddReplica ────────────────────────────────────────────────────────────────
 // Añade una réplica al supervisor. Devuelve el número total de réplicas.
 

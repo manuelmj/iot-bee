@@ -1,8 +1,8 @@
-use crate::adapters::actor_system::pipeline_actor_module::general_ports::SendDataToStore;
 use crate::adapters::actor_system::pipeline_actor_module::processor_actor::data_processor_actor::DataProcessorActor;
 use crate::adapters::actor_system::pipeline_actor_module::processor_actor::messages::{
     ProcessDataMessage, ProcessDataResult,
 };
+
 use crate::logging::AppLogger;
 use actix::prelude::*;
 // use crate::domain::error::IoTBeeError;
@@ -11,8 +11,8 @@ static LOGGER: AppLogger = AppLogger::new(
     "iot_bee::adapters::actor_system::pipeline_actor_module::processor_actor::handlers",
 );
 
-impl<T: SendDataToStore + Send + Sync + 'static> Handler<ProcessDataMessage>
-    for DataProcessorActor<T>
+
+impl  Handler<ProcessDataMessage> for DataProcessorActor
 {
     type Result = ResponseFuture<ProcessDataResult>;
 
@@ -42,8 +42,7 @@ impl<T: SendDataToStore + Send + Sync + 'static> Handler<ProcessDataMessage>
 
 use super::super::general_messages::{SendActorActionMessage,SendActorActionMessageResult,ResponseActorActionMessage,ActorActions};
 
-impl<T: SendDataToStore + Send + Sync + 'static> Handler<SendActorActionMessage>
-    for DataProcessorActor<T>
+impl Handler<SendActorActionMessage> for DataProcessorActor
 {
     type Result = ResponseFuture<SendActorActionMessageResult>;
 
