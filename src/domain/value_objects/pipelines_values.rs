@@ -1,6 +1,9 @@
 use crate::domain::error::DomainValidationError;
 use crate::domain::error::IoTBeeError;
 
+
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DataStoreId(u32);
 impl DataStoreId {
     pub fn new(id: u32) -> Result<Self, IoTBeeError> {
@@ -18,6 +21,7 @@ impl DataStoreId {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PipelineStatus {
     Running,
     Stopped,
@@ -67,6 +71,7 @@ impl PipelineSchemaModel {
     }
 }
 
+#[derive(Debug)]
 pub struct FieldName(String);
 impl FieldName {
     pub fn new(name: impl Into<String>) -> Result<Self, IoTBeeError> {
@@ -87,6 +92,7 @@ impl FieldName {
     }
 }
 
+#[derive(Debug)]
 pub struct DescriptionField(String);
 impl DescriptionField {
     pub fn new(description: impl Into<String>) -> Result<Self, IoTBeeError> {
@@ -124,7 +130,7 @@ impl ReplicationFactor {
         self.0
     }
 }
-
+#[derive(Debug)]
 pub struct PipelineDataStoreModel(String);
 impl PipelineDataStoreModel {
     pub fn new(data_store: impl Into<String>) -> Result<Self, IoTBeeError> {

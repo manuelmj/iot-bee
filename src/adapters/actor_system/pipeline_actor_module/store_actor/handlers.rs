@@ -1,10 +1,6 @@
 use super::messages::{SendDataToStoreMessage,StoreActorResult};
 use super::data_store_actor::DataStoreActor;
-use crate::domain::outbound::data_external_store::DataExternalStore;
-// use crate::domain::entities::data_consumer_types::DataConsumerRawType;
-// use crate::domain::error::{IoTBeeError,PipelinePersistenceError};
 use actix::prelude::*;
-// use crate::adapters::actor_system::pipeline_actor_module::general_ports::SendDataToStore;
 use crate::logging::AppLogger;
 
 static LOGGER: AppLogger = AppLogger::new(
@@ -15,9 +11,7 @@ use async_trait::async_trait;
 
 
 #[async_trait]
-impl<T> Handler<SendDataToStoreMessage> for DataStoreActor<T>
-where
-    T: DataExternalStore + Send + Sync + 'static,
+impl Handler<SendDataToStoreMessage> for DataStoreActor
 {
     type Result = ResponseFuture<StoreActorResult>;
 
@@ -32,5 +26,37 @@ where
                 external_store.save(data).await
             } 
         )
+    }
+}
+
+use crate::adapters::actor_system::pipeline_actor_module::general_messages::{
+    ActorActions, ResponseActorActionMessage, SendActorActionMessage, SendActorActionMessageResult,
+};
+
+impl Handler<SendActorActionMessage> for DataStoreActor
+{
+    type Result = ResponseFuture<SendActorActionMessageResult>;
+
+    fn handle(&mut self, msg: SendActorActionMessage, _ctx: &mut Self::Context) -> Self::Result {
+        Box::pin(async move {
+            match msg.action() {
+                ActorActions::Stop => {
+                    LOGGER.info("DataStoreActor: Stop action received.");
+                    Ok(ResponseActorActionMessage::stopped())
+                }
+                ActorActions::Restart => {
+                    LOGGER.info("DataStoreActor: Restart action received.");
+                    Ok(ResponseActorActionMessage::restarting())
+                }
+                ActorActions::Status => {
+                    LOGGER.info("DataStoreActor: Status action received.");
+                    Ok(ResponseActorActionMessage::running())
+                }
+                _ => {
+                    LOGGER.warn("DataStoreActor: Unknown action received.");
+                    Ok(ResponseActorActionMessage::failed())
+                }
+            }
+        })
     }
 }

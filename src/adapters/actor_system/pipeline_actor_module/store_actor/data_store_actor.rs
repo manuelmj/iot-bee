@@ -5,31 +5,34 @@ use crate::domain::error::{IoTBeeError,PipelineLifecycleError};
 use crate::logging::AppLogger;  
 use std::sync::Arc;
 use async_trait::async_trait;
+
 use super::messages::SendDataToStoreMessage;
+use super::super::general_messages::{SendActorActionMessage, SendActorActionMessageResult};
+use super::super::general_ports::SendActionToActor;
+
 
 static LOGGER: AppLogger = AppLogger::new(
     "iot_bee::adapters::actor_system::pipeline_actor_module::store_actor::DataStoreActor",
 );
 
+type DataExternalStoreThreadSafe = Arc<dyn DataExternalStore + Send + Sync + 'static>;
 
-pub struct DataStoreActor<T: DataExternalStore + Send + Sync + 'static> {
-    external_store: Arc<T>,
+// ── Actor ────────────────────────────────────────────────────────────────────
+pub struct DataStoreActor{
+    external_store: DataExternalStoreThreadSafe,
 }
 
-impl<T: DataExternalStore + Send + Sync + 'static> DataStoreActor<T> {
-    pub fn new(external_store: Arc<T>) -> Self {
+impl DataStoreActor {
+    pub fn new(external_store: DataExternalStoreThreadSafe) -> Self {
         Self { external_store }
     }
-    pub fn external_store(&self) -> Arc<T> {
+    pub fn external_store(&self) -> DataExternalStoreThreadSafe {
         Arc::clone(&self.external_store)
     }
 }
 
 
-impl<T> Actor for DataStoreActor<T>
-where
-    T: DataExternalStore + Send + Sync + 'static,
-{
+impl Actor for DataStoreActor{
     type Context = Context<Self>;
 
     fn started(&mut self, _ctx: &mut Self::Context) {
@@ -41,9 +44,7 @@ where
     }
 }
 
-impl<T> Supervised for DataStoreActor<T>
-where
-    T: DataExternalStore + Send + Sync + 'static,
+impl Supervised for DataStoreActor
 {
     fn restarting(&mut self, _ctx: &mut Self::Context) {
         LOGGER.warn("DataStoreActor is restarting.");
@@ -56,22 +57,20 @@ where
 //
 use super::super::general_ports::SendDataToStore;
 
-pub struct StoreActorBridge<T: DataExternalStore + Send + Sync + 'static> {
-    addr: Addr<DataStoreActor<T>>,
+pub struct StoreActorBridge{
+    addr: Addr<DataStoreActor>,
 }
-impl<T> StoreActorBridge<T>
-where
-    T: DataExternalStore + Send + Sync + 'static,
-{
-    pub fn new(addr: Addr<DataStoreActor<T>>) -> Self {
+impl StoreActorBridge {
+    pub fn start_new_store_actor(external_store: DataExternalStoreThreadSafe) -> Self {
+        //iniciar el actor usando supervisor
+        let acotr = DataStoreActor::new(Arc::clone(&external_store)); 
+        let addr = Supervisor::start(move |_ctx| {acotr});    
         Self { addr }
     }
 }
 
 #[async_trait]
-impl<T> SendDataToStore for StoreActorBridge<T>
-where
-    T: DataExternalStore + Send + Sync + 'static,
+impl SendDataToStore for StoreActorBridge
 {
     async fn send(&self, data: &DataConsumerRawType) -> Result<(), IoTBeeError> {
         self.addr
@@ -81,6 +80,38 @@ where
                 PipelineLifecycleError::InternalCommunication {
                     reason: format!("Failed to send message to store actor: {}", e),
                 }
+            })?
+    }
+}
+
+
+#[async_trait]
+impl SendActionToActor for StoreActorBridge
+{
+    async fn send_stop_actor(&self) -> SendActorActionMessageResult {
+        self.addr
+            .send(SendActorActionMessage::stop())
+            .await
+            .map_err(|e| PipelineLifecycleError::InternalCommunication {
+                reason: format!("Failed to send stop message to store actor: {}", e),
+            })?
+    }
+
+    async fn send_restart_actor(&self) -> SendActorActionMessageResult {
+        self.addr
+            .send(SendActorActionMessage::restart())
+            .await
+            .map_err(|e| PipelineLifecycleError::InternalCommunication {
+                reason: format!("Failed to send restart message to store actor: {}", e),
+            })?
+    }
+
+    async fn get_actor_status(&self) -> SendActorActionMessageResult {
+        self.addr
+            .send(SendActorActionMessage::status())
+            .await
+            .map_err(|e| PipelineLifecycleError::InternalCommunication {
+                reason: format!("Failed to send status message to store actor: {}", e),
             })?
     }
 }

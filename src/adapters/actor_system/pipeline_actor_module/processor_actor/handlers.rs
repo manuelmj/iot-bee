@@ -1,8 +1,8 @@
-use crate::adapters::actor_system::pipeline_actor_module::general_ports::SendDataToStore;
 use crate::adapters::actor_system::pipeline_actor_module::processor_actor::data_processor_actor::DataProcessorActor;
 use crate::adapters::actor_system::pipeline_actor_module::processor_actor::messages::{
     ProcessDataMessage, ProcessDataResult,
 };
+
 use crate::logging::AppLogger;
 use actix::prelude::*;
 // use crate::domain::error::IoTBeeError;
@@ -11,8 +11,8 @@ static LOGGER: AppLogger = AppLogger::new(
     "iot_bee::adapters::actor_system::pipeline_actor_module::processor_actor::handlers",
 );
 
-impl<T: SendDataToStore + Send + Sync + 'static> Handler<ProcessDataMessage>
-    for DataProcessorActor<T>
+
+impl  Handler<ProcessDataMessage> for DataProcessorActor
 {
     type Result = ResponseFuture<ProcessDataResult>;
 
@@ -35,5 +35,44 @@ impl<T: SendDataToStore + Send + Sync + 'static> Handler<ProcessDataMessage>
                 .into()
             })
         })
+    }
+}
+
+
+
+use super::super::general_messages::{SendActorActionMessage,SendActorActionMessageResult,ResponseActorActionMessage,ActorActions};
+
+impl Handler<SendActorActionMessage> for DataProcessorActor
+{
+    type Result = ResponseFuture<SendActorActionMessageResult>;
+
+    fn handle(&mut self, msg: SendActorActionMessage, _ctx: &mut Self::Context) -> Self::Result {
+        
+        Box::pin(async move {
+            // Aquí puedes agregar la lógica para manejar el mensaje de acción
+            LOGGER.info(&format!("Received action message: {:?}", msg.action()));
+            // Por ejemplo, podrías iniciar o detener el procesamiento según la acción recibida
+            match msg.action() {
+                ActorActions::Start => {
+                    LOGGER.info("Starting data processing...");
+                    // Lógica para iniciar el procesamiento
+                    Ok(ResponseActorActionMessage::running())
+                }
+                ActorActions::Stop => {
+                    LOGGER.info("Stopping data processing...");
+                    // Lógica para detener el procesamiento
+                    Ok(ResponseActorActionMessage::stopped())
+                }
+                ActorActions::Restart => {
+                    LOGGER.info("Restarting data processing...");
+                    // Lógica para reiniciar el procesamiento
+                    Ok(ResponseActorActionMessage::restarting())
+                }
+                ActorActions::Status => {
+                    LOGGER.info("Checking data processing status...");
+                    Ok(ResponseActorActionMessage::running()) // Aquí puedes devolver el estado actual real
+                }
+            }
+        })        
     }
 }

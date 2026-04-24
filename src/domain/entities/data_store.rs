@@ -39,6 +39,7 @@ impl PipelineDataStoreInputModel {
     }
 }
 
+#[derive(Debug)]
 pub struct PipelineDataStoreOutputModel {
     id: DataStoreId,
     name: FieldName,

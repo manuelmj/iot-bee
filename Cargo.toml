@@ -46,4 +46,34 @@ sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite"] }
 lapin = "4.4.0"
 futures-util = "0.3.31"
 
- 
+[dev-dependencies]
+sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite"] }
+
+[[test]]
+name = "domain_value_objects"
+path = "test/domain_value_objects.rs"
+
+[[test]]
+name = "data_store_use_cases"
+path = "test/data_store_use_cases.rs"
+
+[[test]]
+name = "data_store_api"
+path = "test/data_store_api.rs"
+
+[[test]]
+name = "data_store_repository"
+path = "test/data_store_repository.rs"
+
+[[test]]
+name = "store_actor"
+path = "test/store_actor.rs"
+
+[[test]]
+name = "pipeline_integration"
+path = "test/pipeline_integration.rs"
+
+[[test]]
+name = "supervisor_actor"
+path = "test/supervisor_actor.rs"
+
