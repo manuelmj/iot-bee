@@ -2,7 +2,7 @@
 /// Usan un caso de uso falso para aislar la lógica HTTP de la persistencia.
 /// Validan: status codes, contrato JSON y manejo de errores.
 use actix_web::http::StatusCode;
-use actix_web::{test, web, App};
+use actix_web::{App, test, web};
 use async_trait::async_trait;
 use chrono::Utc;
 use iot_bee::adapters::api::data_store::routers::data_store_scope;
@@ -21,10 +21,7 @@ struct UseCaseVacio;
 
 #[async_trait]
 impl DataStoreUseCases for UseCaseVacio {
-    async fn create_data_store(
-        &self,
-        _: &PipelineDataStoreInputModel,
-    ) -> Result<(), IoTBeeError> {
+    async fn create_data_store(&self, _: &PipelineDataStoreInputModel) -> Result<(), IoTBeeError> {
         Ok(())
     }
     async fn get_data_store(&self) -> Result<Vec<PipelineDataStoreOutputModel>, IoTBeeError> {
@@ -43,10 +40,7 @@ struct UseCaseConDatos;
 
 #[async_trait]
 impl DataStoreUseCases for UseCaseConDatos {
-    async fn create_data_store(
-        &self,
-        _: &PipelineDataStoreInputModel,
-    ) -> Result<(), IoTBeeError> {
+    async fn create_data_store(&self, _: &PipelineDataStoreInputModel) -> Result<(), IoTBeeError> {
         Ok(())
     }
     async fn get_data_store(&self) -> Result<Vec<PipelineDataStoreOutputModel>, IoTBeeError> {
@@ -84,10 +78,7 @@ struct UseCaseNombreDuplicado;
 
 #[async_trait]
 impl DataStoreUseCases for UseCaseNombreDuplicado {
-    async fn create_data_store(
-        &self,
-        _: &PipelineDataStoreInputModel,
-    ) -> Result<(), IoTBeeError> {
+    async fn create_data_store(&self, _: &PipelineDataStoreInputModel) -> Result<(), IoTBeeError> {
         Err(PipelinePersistenceError::ValidationSchemaNameExists {
             name: "store-duplicado".to_string(),
         }
@@ -184,9 +175,7 @@ async fn post_data_store_sin_body_devuelve_400() {
 
     let app = test::init_service(App::new().service(data_store_scope(use_case_data))).await;
 
-    let req = test::TestRequest::post()
-        .uri("/data-stores")
-        .to_request();
+    let req = test::TestRequest::post().uri("/data-stores").to_request();
 
     let resp = test::call_service(&app, req).await;
 
@@ -202,9 +191,7 @@ async fn get_data_stores_devuelve_200_con_lista_vacia() {
 
     let app = test::init_service(App::new().service(data_store_scope(use_case_data))).await;
 
-    let req = test::TestRequest::get()
-        .uri("/data-stores")
-        .to_request();
+    let req = test::TestRequest::get().uri("/data-stores").to_request();
 
     let resp = test::call_service(&app, req).await;
 
@@ -220,9 +207,7 @@ async fn get_data_stores_devuelve_200_con_datos() {
 
     let app = test::init_service(App::new().service(data_store_scope(use_case_data))).await;
 
-    let req = test::TestRequest::get()
-        .uri("/data-stores")
-        .to_request();
+    let req = test::TestRequest::get().uri("/data-stores").to_request();
 
     let resp = test::call_service(&app, req).await;
 
@@ -242,9 +227,7 @@ async fn get_data_store_por_id_existente_devuelve_200() {
 
     let app = test::init_service(App::new().service(data_store_scope(use_case_data))).await;
 
-    let req = test::TestRequest::get()
-        .uri("/data-stores/1")
-        .to_request();
+    let req = test::TestRequest::get().uri("/data-stores/1").to_request();
 
     let resp = test::call_service(&app, req).await;
 
@@ -261,9 +244,7 @@ async fn get_data_store_por_id_inexistente_devuelve_404() {
 
     let app = test::init_service(App::new().service(data_store_scope(use_case_data))).await;
 
-    let req = test::TestRequest::get()
-        .uri("/data-stores/99")
-        .to_request();
+    let req = test::TestRequest::get().uri("/data-stores/99").to_request();
 
     let resp = test::call_service(&app, req).await;
 

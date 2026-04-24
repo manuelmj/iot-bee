@@ -2,7 +2,7 @@ use actix::prelude::*;
 
 use super::messges::{
     AddReplicaMessage, RemoveReplicaMessage, ReplicaCountMessage, RestartAllReplicasMessage,
-    StatusAllReplicasMessage, StopAllReplicasMessage,StartPipelineMessage
+    StartPipelineMessage, StatusAllReplicasMessage, StopAllReplicasMessage,
 };
 use super::pipeline_abstraction::{AllReplicasResult, PipelineAbstractionController};
 use super::pipeline_supervisor::PipelineSupervisor;
@@ -14,16 +14,12 @@ use crate::domain::error::{IoTBeeError, PipelineLifecycleError};
 // como métodos async tipados sin exponer el tipo Actor al exterior.
 // Addr<A> implementa Clone, por lo que el derive es suficiente.
 
-
 pub struct SupervisorPipelineBridge {
     addr: Addr<PipelineSupervisor>,
 }
 
 impl SupervisorPipelineBridge {
-    pub fn new(
-        addr: Addr<PipelineSupervisor>,
-        
-    ) -> Self {
+    pub fn new(addr: Addr<PipelineSupervisor>) -> Self {
         Self { addr }
     }
 

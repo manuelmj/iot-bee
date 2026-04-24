@@ -1,24 +1,23 @@
-use actix::prelude::*;
-use crate::domain::outbound::data_external_store::DataExternalStore;
 use crate::domain::entities::data_consumer_types::DataConsumerRawType;
-use crate::domain::error::{IoTBeeError,PipelineLifecycleError};
-use crate::logging::AppLogger;  
-use std::sync::Arc;
+use crate::domain::error::{IoTBeeError, PipelineLifecycleError};
+use crate::domain::outbound::data_external_store::DataExternalStore;
+use crate::logging::AppLogger;
+use actix::prelude::*;
 use async_trait::async_trait;
+use std::sync::Arc;
 
-use super::messages::SendDataToStoreMessage;
 use super::super::general_messages::{SendActorActionMessage, SendActorActionMessageResult};
 use super::super::general_ports::SendActionToActor;
-
+use super::messages::SendDataToStoreMessage;
 
 static LOGGER: AppLogger = AppLogger::new(
     "iot_bee::adapters::actor_system::pipeline_actor_module::store_actor::DataStoreActor",
 );
 
-type DataExternalStoreThreadSafe = Arc<dyn DataExternalStore + Send + Sync + 'static>;
+pub type DataExternalStoreThreadSafe = Arc<dyn DataExternalStore + Send + Sync + 'static>;
 
 // ── Actor ────────────────────────────────────────────────────────────────────
-pub struct DataStoreActor{
+pub struct DataStoreActor {
     external_store: DataExternalStoreThreadSafe,
 }
 
@@ -31,8 +30,7 @@ impl DataStoreActor {
     }
 }
 
-
-impl Actor for DataStoreActor{
+impl Actor for DataStoreActor {
     type Context = Context<Self>;
 
     fn started(&mut self, _ctx: &mut Self::Context) {
@@ -44,50 +42,47 @@ impl Actor for DataStoreActor{
     }
 }
 
-impl Supervised for DataStoreActor
-{
+impl Supervised for DataStoreActor {
     fn restarting(&mut self, _ctx: &mut Self::Context) {
         LOGGER.warn("DataStoreActor is restarting.");
     }
 }
 
-
-
 //────Bridge────────────────────────────────────────────────────────────────────────────────────────────────
 //
 use super::super::general_ports::SendDataToStore;
 
-pub struct StoreActorBridge{
+#[derive(Clone)]
+pub struct StoreActorBridge {
     addr: Addr<DataStoreActor>,
 }
 impl StoreActorBridge {
-    pub fn start_new_store_actor(external_store: DataExternalStoreThreadSafe) -> Self {
+     
+
+    pub fn start_new_store_actor_with_impl(
+        external_store: DataExternalStoreThreadSafe,
+    ) -> Arc<dyn SendDataToStore + Send + Sync> {
         //iniciar el actor usando supervisor
-        let acotr = DataStoreActor::new(Arc::clone(&external_store)); 
-        let addr = Supervisor::start(move |_ctx| {acotr});    
-        Self { addr }
+        let acotr = DataStoreActor::new(Arc::clone(&external_store));
+        let addr = Supervisor::start(move |_ctx| acotr);
+        Arc::new(Self { addr })
     }
 }
 
 #[async_trait]
-impl SendDataToStore for StoreActorBridge
-{
+impl SendDataToStore for StoreActorBridge {
     async fn send(&self, data: &DataConsumerRawType) -> Result<(), IoTBeeError> {
         self.addr
             .send(SendDataToStoreMessage::new(&data))
             .await
-            .map_err(|e| {
-                PipelineLifecycleError::InternalCommunication {
-                    reason: format!("Failed to send message to store actor: {}", e),
-                }
+            .map_err(|e| PipelineLifecycleError::InternalCommunication {
+                reason: format!("Failed to send message to store actor: {}", e),
             })?
     }
 }
 
-
 #[async_trait]
-impl SendActionToActor for StoreActorBridge
-{
+impl SendActionToActor for StoreActorBridge {
     async fn send_stop_actor(&self) -> SendActorActionMessageResult {
         self.addr
             .send(SendActorActionMessage::stop())

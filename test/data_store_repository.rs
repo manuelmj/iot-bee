@@ -113,10 +113,7 @@ async fn get_by_id_retorna_el_registro_guardado() {
     let id_guardado = lista[0].id();
 
     let id_vo = DataStoreId::new(id_guardado).unwrap();
-    let resultado = repo
-        .get_pipeline_data_store_by_id(&id_vo)
-        .await
-        .unwrap();
+    let resultado = repo.get_pipeline_data_store_by_id(&id_vo).await.unwrap();
 
     assert!(resultado.is_some());
     let modelo = resultado.unwrap();
@@ -148,9 +145,15 @@ async fn save_multiples_stores_y_listar_todos() {
     let db = crear_bd_test().await;
     let repo = DataStoreRepository::new(db);
 
-    repo.save_pipeline_data_store(&input("store-a")).await.unwrap();
-    repo.save_pipeline_data_store(&input("store-b")).await.unwrap();
-    repo.save_pipeline_data_store(&input("store-c")).await.unwrap();
+    repo.save_pipeline_data_store(&input("store-a"))
+        .await
+        .unwrap();
+    repo.save_pipeline_data_store(&input("store-b"))
+        .await
+        .unwrap();
+    repo.save_pipeline_data_store(&input("store-c"))
+        .await
+        .unwrap();
 
     let lista = repo.get_pipeline_data_store().await.unwrap();
 

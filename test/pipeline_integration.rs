@@ -30,11 +30,10 @@ use iot_bee::adapters::actor_system::pipeline_actor_module::{
 use iot_bee::domain::entities::data_consumer_types::DataConsumerRawType;
 use iot_bee::domain::error::IoTBeeError;
 use iot_bee::domain::outbound::{data_external_store::DataExternalStore, data_source::DataSource};
+use iot_bee::logging::{AppLogger, init_tracing};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
-use iot_bee::logging::{AppLogger,init_tracing};
-
 
 static LOGGER: AppLogger = AppLogger::new("test::pipeline_integration");
 
@@ -111,7 +110,9 @@ fn generar_payloads(n: usize) -> Vec<String> {
 fn montar_pipeline(
     payloads: Vec<String>,
 ) -> (
-    Addr<DataConsumerActor<FakeDataSource, ProcessorActorBridge<StoreActorBridge<SpyExternalStore>>>>,
+    Addr<
+        DataConsumerActor<FakeDataSource, ProcessorActorBridge<StoreActorBridge<SpyExternalStore>>>,
+    >,
     Arc<Mutex<Vec<String>>>,
     Arc<tokio::sync::Semaphore>,
 ) {
@@ -120,7 +121,10 @@ fn montar_pipeline(
     let sem = Arc::new(tokio::sync::Semaphore::new(0));
 
     // 1. DataStoreActor + bridge (extremo de salida)
-    let spy = Arc::new(SpyExternalStore::new(Arc::clone(&recibidos), Arc::clone(&sem)));
+    let spy = Arc::new(SpyExternalStore::new(
+        Arc::clone(&recibidos),
+        Arc::clone(&sem),
+    ));
     let store_bridge = Arc::new(StoreActorBridge::new(DataStoreActor::new(spy).start()));
 
     // 2. DataProcessorActor + bridge (capa intermedia)
@@ -152,7 +156,11 @@ async fn pipeline_propaga_todos_los_mensajes_de_extremo_a_extremo() {
         .expect("Timeout: no llegaron todos los mensajes al store en 5 segundos");
 
     let datos = recibidos.lock().unwrap();
-    assert_eq!(datos.len(), N, "Deben llegar exactamente {N} mensajes al store");
+    assert_eq!(
+        datos.len(),
+        N,
+        "Deben llegar exactamente {N} mensajes al store"
+    );
 
     for payload in &payloads {
         assert!(

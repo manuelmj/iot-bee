@@ -1,15 +1,15 @@
+use crate::domain::error::IoTBeeError;
 use actix::prelude::*;
-use crate::domain::error::IoTBeeError;  
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ActorActions{
+pub enum ActorActions {
     Start,
     Stop,
     Restart,
     Status,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ActorStatus{
+pub enum ActorStatus {
     Running,
     Stopped,
     Restarting,
@@ -37,7 +37,6 @@ impl ResponseActorActionMessage {
     pub fn failed() -> Self {
         Self(ActorStatus::Failed)
     }
-
 }
 
 pub struct SendActorActionMessage(ActorActions);
@@ -58,8 +57,6 @@ impl SendActorActionMessage {
     pub fn status() -> Self {
         Self(ActorActions::Status)
     }
-
-
 }
 
 pub type SendActorActionMessageResult = Result<ResponseActorActionMessage, IoTBeeError>;
