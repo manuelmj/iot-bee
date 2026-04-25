@@ -29,6 +29,7 @@ static LOGGER: AppLogger = AppLogger::new("test::actor_system_test");
 async fn test_pipeline_lifecycle() {
     init_tracing();
     LOGGER.info("Iniciando test de ciclo de vida del pipeline...");
+    //this url is for testing and it rotate in every test. 
     let rabbitmq_url = "amqps://eqvsanpg:YY5JYvdE0SGYxhK3lYyyODnDlQKyqdc_@gerbil.rmq.cloudamqp.com/eqvsanpg";
     let data_source = RabbitMQDataSource::new(
         rabbitmq_url,
