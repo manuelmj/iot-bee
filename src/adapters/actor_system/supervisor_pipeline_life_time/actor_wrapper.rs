@@ -4,7 +4,7 @@ use super::messges::{
     AddReplicaMessage, RemoveReplicaMessage, ReplicaCountMessage, RestartAllReplicasMessage,
     StartPipelineMessage, StatusAllReplicasMessage, StopAllReplicasMessage,
 };
-use super::pipeline_abstraction::{AllReplicasResult, PipelineAbstractionController};
+use super::pipeline_abstraction::{PipelineAbstractionController};
 use super::pipeline_supervisor::PipelineSupervisor;
 use crate::domain::error::{IoTBeeError, PipelineLifecycleError};
 
@@ -54,21 +54,21 @@ impl SupervisorPipelineBridge {
             .map_err(mailbox_err)?
     }
 
-    pub async fn stop_all(&self) -> Result<AllReplicasResult, IoTBeeError> {
+    pub async fn stop_all(&self) -> Result<(), IoTBeeError> {
         self.addr
             .send(StopAllReplicasMessage)
             .await
             .map_err(mailbox_err)?
     }
 
-    pub async fn restart_all(&self) -> Result<AllReplicasResult, IoTBeeError> {
+    pub async fn restart_all(&self) -> Result<(), IoTBeeError> {
         self.addr
             .send(RestartAllReplicasMessage)
             .await
             .map_err(mailbox_err)?
     }
 
-    pub async fn status_all(&self) -> Result<AllReplicasResult, IoTBeeError> {
+    pub async fn status_all(&self) -> Result<(), IoTBeeError> {
         self.addr
             .send(StatusAllReplicasMessage)
             .await

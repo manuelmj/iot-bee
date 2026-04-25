@@ -4,7 +4,7 @@ use super::messges::{
     AddReplicaMessage, RemoveReplicaMessage, ReplicaCountMessage, RestartAllReplicasMessage,
     StartPipelineMessage, StatusAllReplicasMessage, StopAllReplicasMessage,
 };
-use super::pipeline_abstraction::AllReplicasResult;
+// use super::pipeline_abstraction::AllReplicasResult;
 use super::pipeline_supervisor::PipelineSupervisor;
 use crate::domain::error::{IoTBeeError, PipelineLifecycleError};
 
@@ -74,19 +74,19 @@ impl Handler<StopAllReplicasMessage> for PipelineSupervisor {
         let replica_registry = self.replica_registry();
         
         Box::pin(async move {
-            // let mut result_vector:Vec<Result<(), IoTBeeError>> = Vec::new();
-            // let replicas =  replica_registry.all_arcs().await; 
+            let mut result_vector:Vec<Result<(), IoTBeeError>> = Vec::new();
+            let replicas =  replica_registry.all_arcs().await; 
 
-            // for replica in replicas {
-            //     let stop_result = replica.stop().await;
-            //     result_vector.push(stop_result);
-            // }      
-            // // Combinar los resultados individuales en un solo resultado
-            // for result in result_vector {
-            //     if let Err(e) = result {
-            //         return Err(e);
-            //     }
-            // }
+            for replica in replicas {
+                let stop_result = replica.stop().await;
+                result_vector.push(stop_result);
+            }      
+            // Combinar los resultados individuales en un solo resultado
+            for result in result_vector {
+                if let Err(e) = result {
+                    return Err(e);
+                }
+            } 
 
             Ok(())
         })
@@ -122,8 +122,9 @@ impl Handler<RemoveReplicaMessage> for PipelineSupervisor {
 impl Handler<AddReplicaMessage> for PipelineSupervisor {
     type Result = Result<usize, IoTBeeError>;
 
-    fn handle(&mut self, msg: AddReplicaMessage, _ctx: &mut Context<Self>) -> Self::Result {
-        self.replica_registry().add_replica(msg.controller).await
+    fn handle(&mut self, _msg: AddReplicaMessage, _ctx: &mut Context<Self>) -> Self::Result {
+        Ok(0 as usize)
+        // self.replica_registry().add_replica(msg.controller).await
     }
 }
 
@@ -135,50 +136,32 @@ impl Handler<ReplicaCountMessage> for PipelineSupervisor {
     type Result = Result<usize, IoTBeeError>;
 
     fn handle(&mut self, _msg: ReplicaCountMessage, _ctx: &mut Context<Self>) -> Self::Result {
-        self.replica_registry().replica_count()
+        Ok(0 as usize)
+        // self.replica_registry().replica_count()
     }
 }
 
 // ── RestartAllReplicas ── asíncrono ───────────────────────────────────────────
 
 impl Handler<RestartAllReplicasMessage> for PipelineSupervisor {
-    type Result = ResponseFuture<Result<AllReplicasResult, IoTBeeError>>;
+    type Result = ResponseFuture<Result<(), IoTBeeError>>;
 
     fn handle(
         &mut self,
         _msg: RestartAllReplicasMessage,
         _ctx: &mut Context<Self>,
     ) -> Self::Result {
-        let replicas = match self.replica_registry().all_arcs() {
-            Ok(r) => r,
-            Err(e) => return Box::pin(async move { Err(e) }),
-        };
-        Box::pin(async move {
-            let mut results = Vec::with_capacity(replicas.len());
-            for replica in replicas {
-                results.push(replica.restart().await);
-            }
-            Ok(results)
-        })
+        Box::pin(async move { Ok(()) })
     }
 }
 
 // ── StatusAllReplicas ── asíncrono ────────────────────────────────────────────
 
 impl Handler<StatusAllReplicasMessage> for PipelineSupervisor {
-    type Result = ResponseFuture<Result<AllReplicasResult, IoTBeeError>>;
+    type Result = ResponseFuture<Result<(), IoTBeeError>>;
 
     fn handle(&mut self, _msg: StatusAllReplicasMessage, _ctx: &mut Context<Self>) -> Self::Result {
-        let replicas = match self.replica_registry().all_arcs() {
-            Ok(r) => r,
-            Err(e) => return Box::pin(async move { Err(e) }),
-        };
-        Box::pin(async move {
-            let mut results = Vec::with_capacity(replicas.len());
-            for replica in replicas {
-                results.push(replica.status().await);
-            }
-            Ok(results)
-        })
+        Box::pin(async move { Ok(()) })
+        
     }
 }

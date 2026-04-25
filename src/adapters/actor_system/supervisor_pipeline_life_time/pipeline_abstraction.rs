@@ -3,7 +3,7 @@ use std::sync::{Arc};
 use super::super::pipeline_actor_module::general_messages::SendActorActionMessageResult;
 use super::super::pipeline_actor_module::general_ports::SendActionToActor;
 use crate::domain::error::{IoTBeeError, PipelineLifecycleError};
-use crate::adapters::actor_system::pipeline_actor_module::general_messages::{ResponseActorActionMessage, ActorStatus};
+// use crate::adapters::actor_system::pipeline_actor_module::general_messages::{ResponseActorActionMessage, ActorStatus};
 /// Resultado de una operación de ciclo de vida sobre un trío (consumer, processor, store).
 pub type TripleResult = (
     SendActorActionMessageResult,
@@ -19,10 +19,12 @@ pub type AllReplicasResult = Vec<TripleResult>;
 // Representa un trío de actores (consumer, processor, store) para una réplica.
 // Las acciones de ciclo de vida se delegan a los tres en orden.
 
+use tokio::sync::Mutex;
+
 pub struct PipelineAbstractionController {
-    consumer: Option<Arc<dyn SendActionToActor + Send + Sync>>,
-    processor: Option<Arc<dyn SendActionToActor + Send + Sync>>,
-    store: Option<Arc<dyn SendActionToActor + Send + Sync>>,
+    consumer: Mutex<Option<Arc<dyn SendActionToActor + Send + Sync>>>,
+    processor: Mutex<Option<Arc<dyn SendActionToActor + Send + Sync>>>,
+    store: Mutex<Option<Arc<dyn SendActionToActor + Send + Sync>>>,
 }
 
 impl PipelineAbstractionController {
@@ -32,34 +34,35 @@ impl PipelineAbstractionController {
         store: Arc<dyn SendActionToActor + Send + Sync>,
     ) -> Self {
         Self {
-            consumer: Some(consumer),
-            processor: Some(processor),
-            store: Some(store),
+            consumer: Mutex::new(Some(consumer)),
+            processor: Mutex::new(Some(processor)),
+            store: Mutex::new(Some(store)),
         }
     }
 
-    pub async fn stop(&mut self) -> Result<(), IoTBeeError> {
+    pub async fn stop(&self) -> Result<(), IoTBeeError> {
         let mut failures = Vec::new();
+
         
-        if let Some(consumer) = self.consumer.take() {
+        if let Some(consumer) = self.consumer.lock().await.take() {
             if let Err(e) = consumer.send_stop_actor().await {
                 failures.push(("consumer", e.to_string()));
-                self.consumer = Some(consumer); // reponer el consumer para intentar detener los otros actores
+                *self.consumer.lock().await = Some(consumer); // reponer el consumer para intentar detener los otros actores
             }
         }
         
-        if let Some(processor) = self.processor.take() {
+        if let Some(processor) = self.processor.lock().await.take() {
             if let Err(e) = processor.send_stop_actor().await {
                 failures.push(("processor", e.to_string()));
-                self.processor = Some(processor); // reponer el processor para intentar detener los otros actores
+                *self.processor.lock().await = Some(processor); // reponer el processor para intentar detener los otros actores
 
             }
         }
         
-        if let Some(store) = self.store.take() {
+        if let Some(store) = self.store.lock().await.take() {
             if let Err(e) = store.send_stop_actor().await {
                 failures.push(("store", e.to_string()));
-                self.store = Some(store); // reponer el store para intentar detener los otros actores
+                *self.store.lock().await = Some(store); // reponer el store para intentar detener los otros actores
             }
         }
         
@@ -72,9 +75,8 @@ impl PipelineAbstractionController {
         }
     }
 
-    pub fn pipeline_stopped(&self) -> bool {
-        self.consumer.is_none() && self.processor.is_none() && self.store.is_none()
-
+    pub async fn pipeline_stopped(&self) -> bool {
+        self.consumer.lock().await.is_none() && self.processor.lock().await.is_none() && self.store.lock().await.is_none()
     }
 
     pub async fn restart(&self) -> Result<(), IoTBeeError> {
