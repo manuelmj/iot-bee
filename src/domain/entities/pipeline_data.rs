@@ -149,3 +149,27 @@ impl PipelineDataOutputModel {
         self.updated_at
     }
 }
+
+pub struct PipelineConfiguration {
+    pipeline_name: FieldName,
+    pipeline_replication: u32,
+}
+
+impl PipelineConfiguration {
+    pub fn new(
+        pipeline_name: impl Into<String>,
+        pipeline_replication: u32,
+    ) -> Result<Self, IoTBeeError> {
+        Ok(Self {
+            pipeline_name: FieldName::new(pipeline_name)?,
+            pipeline_replication,
+        })
+    }
+
+    pub fn pipeline_name(&self) -> &str {
+        self.pipeline_name.name()
+    }
+    pub fn pipeline_replication(&self) -> u32 {
+        self.pipeline_replication
+    }
+}

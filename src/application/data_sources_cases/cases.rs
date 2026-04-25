@@ -159,7 +159,7 @@ where
             })
     }
 
-    async fn delete_data_source(&self, data_source_id: &u32) -> Result<(), IoTBeeError> {
+    async fn delete_data_source(&self, _data_source_id: &u32) -> Result<(), IoTBeeError> {
         unimplemented!()
     }
 }

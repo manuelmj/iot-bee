@@ -23,7 +23,7 @@
 use actix::prelude::*;
 use async_trait::async_trait;
 use iot_bee::adapters::actor_system::pipeline_actor_module::{
-    consumer_actor::data_consumer_actor::{DataConsumerActor,ConsumerActorBridge},
+    consumer_actor::data_consumer_actor::{ConsumerActorBridge, DataConsumerActor},
     processor_actor::data_processor_actor::{DataProcessorActor, ProcessorActorBridge},
     store_actor::data_store_actor::{DataStoreActor, StoreActorBridge},
 };
@@ -109,10 +109,7 @@ fn generar_payloads(n: usize) -> Vec<String> {
 ///   - El semáforo que el spy libera con cada `save()`.
 fn montar_pipeline(
     payloads: Vec<String>,
-) -> (
-    Arc<Mutex<Vec<String>>>,
-    Arc<tokio::sync::Semaphore>,
-) {
+) -> (Arc<Mutex<Vec<String>>>, Arc<tokio::sync::Semaphore>) {
     init_tracing();
     let recibidos: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
     let sem = Arc::new(tokio::sync::Semaphore::new(0));
@@ -134,8 +131,9 @@ fn montar_pipeline(
     // 3. DataConsumerActor (extremo de entrada; auto-inicia en started())
     let source = Arc::new(FakeDataSource::con_payloads(payloads));
     // let consumer_addr = DataConsumerActor::new(source, processor_bridge).start();
-    
-    let _consumer_addr = ConsumerActorBridge::start_new_consumer_actor_with_impl(source, processor_bridge);
+
+    let _consumer_addr =
+        ConsumerActorBridge::start_new_consumer_actor_with_impl(source, processor_bridge);
 
     (recibidos, sem)
 }

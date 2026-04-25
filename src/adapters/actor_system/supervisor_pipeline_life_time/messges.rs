@@ -1,6 +1,6 @@
 use actix::prelude::*;
 
-use super::pipeline_abstraction::{PipelineAbstractionController};
+use super::pipeline_abstraction::PipelineAbstractionController;
 use crate::domain::error::IoTBeeError;
 
 // StartPipeline

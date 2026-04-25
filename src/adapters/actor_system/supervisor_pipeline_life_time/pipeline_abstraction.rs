@@ -1,4 +1,4 @@
-use std::sync::{Arc};
+use std::sync::Arc;
 
 use super::super::pipeline_actor_module::general_messages::SendActorActionMessageResult;
 use super::super::pipeline_actor_module::general_ports::SendActionToActor;
@@ -43,40 +43,41 @@ impl PipelineAbstractionController {
     pub async fn stop(&self) -> Result<(), IoTBeeError> {
         let mut failures = Vec::new();
 
-        
         if let Some(consumer) = self.consumer.lock().await.take() {
             if let Err(e) = consumer.send_stop_actor().await {
                 failures.push(("consumer", e.to_string()));
                 *self.consumer.lock().await = Some(consumer); // reponer el consumer para intentar detener los otros actores
             }
         }
-        
+
         if let Some(processor) = self.processor.lock().await.take() {
             if let Err(e) = processor.send_stop_actor().await {
                 failures.push(("processor", e.to_string()));
                 *self.processor.lock().await = Some(processor); // reponer el processor para intentar detener los otros actores
-
             }
         }
-        
+
         if let Some(store) = self.store.lock().await.take() {
             if let Err(e) = store.send_stop_actor().await {
                 failures.push(("store", e.to_string()));
                 *self.store.lock().await = Some(store); // reponer el store para intentar detener los otros actores
             }
         }
-        
+
         if failures.is_empty() {
             Ok(())
         } else {
             Err(PipelineLifecycleError::OperationFailed {
                 reason: format!("Failed when stopping actors: {:?}", failures),
-            }.into())
+            }
+            .into())
         }
     }
 
     pub async fn pipeline_stopped(&self) -> bool {
-        self.consumer.lock().await.is_none() && self.processor.lock().await.is_none() && self.store.lock().await.is_none()
+        self.consumer.lock().await.is_none()
+            && self.processor.lock().await.is_none()
+            && self.store.lock().await.is_none()
     }
 
     pub async fn restart(&self) -> Result<(), IoTBeeError> {
@@ -95,7 +96,7 @@ impl PipelineAbstractionController {
 // Se almacena Arc para poder clonar referencias antes de cualquier .await,
 // garantizando que el RwLockGuard nunca se sostenga a través de un punto de
 // suspensión asíncrona (lo que causaría un deadlock en tokio).
-use tokio::sync::{RwLock,RwLockReadGuard,RwLockWriteGuard}; 
+use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 pub struct ReplicaRegistry {
     replicas: RwLock<Vec<Arc<PipelineAbstractionController>>>,
 }
@@ -107,17 +108,11 @@ impl ReplicaRegistry {
         }
     }
 
-    async fn read_lock(
-        &self,
-    ) -> RwLockReadGuard<'_, Vec<Arc<PipelineAbstractionController>>>
-    {
-        self.replicas.read().await 
+    async fn read_lock(&self) -> RwLockReadGuard<'_, Vec<Arc<PipelineAbstractionController>>> {
+        self.replicas.read().await
     }
 
-    async fn write_lock(
-        &self,
-    ) -> RwLockWriteGuard<'_, Vec<Arc<PipelineAbstractionController>>>
-    {
+    async fn write_lock(&self) -> RwLockWriteGuard<'_, Vec<Arc<PipelineAbstractionController>>> {
         self.replicas.write().await
     }
 
@@ -128,23 +123,23 @@ impl ReplicaRegistry {
     }
 
     /// Añade una réplica. Devuelve el número total de réplicas tras la inserción.
-    pub async fn add_replica(
-        &self,
-        controller: PipelineAbstractionController,
-    ) -> usize {
+    pub async fn add_replica(&self, controller: Vec<PipelineAbstractionController>) -> usize {
         let mut replicas = self.write_lock().await;
-        replicas.push(Arc::new(controller));
+        for c in controller {
+            replicas.push(Arc::new(c));
+        }
         replicas.len()
     }
 
-    pub async fn get_last_replica(&self) -> Result<Arc<PipelineAbstractionController>, IoTBeeError> {
-        self.read_lock().await
-            .last()
-            .cloned()
-            .ok_or_else(|| PipelineLifecycleError::OperationFailed {
+    pub async fn get_last_replica(
+        &self,
+    ) -> Result<Arc<PipelineAbstractionController>, IoTBeeError> {
+        self.read_lock().await.last().cloned().ok_or_else(|| {
+            PipelineLifecycleError::OperationFailed {
                 reason: "No hay réplicas disponibles".to_string(),
             }
-            .into())
+            .into()
+        })
     }
 
     /// Elimina la última réplica (escala hacia abajo). Error si no hay réplicas.

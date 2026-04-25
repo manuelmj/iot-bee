@@ -6,9 +6,8 @@
 // impl Message for SystemActorSupervisor {
 //     type Result = Result<(), IoTBeeError>;
 //     fn handle(&self, _msg: StartAllPipelinesInLocalStorageMessage, ctx: &mut Context<Self>) -> Self::Result {
-        
+
 //         Ok(())
 //     }
 
 // }
-

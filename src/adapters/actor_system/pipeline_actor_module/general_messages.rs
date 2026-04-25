@@ -3,7 +3,7 @@ use actix::prelude::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ActorActions {
-    Start,
+    // Start,
     Stop,
     Restart,
     Status,

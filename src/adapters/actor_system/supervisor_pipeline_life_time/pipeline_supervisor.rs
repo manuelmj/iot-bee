@@ -1,15 +1,15 @@
 use super::pipeline_abstraction::ReplicaRegistry;
-use crate::domain::outbound::data_external_store::DataExternalStore;
-use crate::domain::outbound::data_processor_actions::DataProcessorActions;
-use crate::domain::outbound::data_source::DataSource;
+
 use crate::logging::AppLogger;
 use actix::prelude::*;
 use std::sync::Arc;
 
+use super::{DataExternalStoreThreadSafe, DataProcessorThreadSafe, DataSourceThreadSafe};
+use crate::domain::entities::pipeline_data::PipelineConfiguration;
+
 static LOGGER: AppLogger = AppLogger::new(
     "iot_bee::adapters::actor_system::supervisor_pipeline_life_time::PipelineSupervisor",
 );
-
 // ── PipelineSupervisor ────────────────────────────────────────────────────────
 //
 // Actor que gestiona las réplicas de UN pipeline concreto.
@@ -26,18 +26,10 @@ static LOGGER: AppLogger = AppLogger::new(
 //   Los Arc de las réplicas se clonan en la parte síncrona (all_arcs()) antes del
 //   await, garantizando que el RwLockGuard se libere antes de cualquier suspensión.
 
-type DataSourceThreadSafe = Arc<dyn DataSource + Send + Sync + 'static>;
-type DataProcessorThreadSafe = Arc<dyn DataProcessorActions + Send + Sync + 'static>;
-type DataExternalStoreThreadSafe = Arc<dyn DataExternalStore + Send + Sync + 'static>;
-
-pub struct PipelineRuntimeConfig {
-    pub pipeline_replica_count: usize,
-    pub pipeline_name: String,
-}
 pub struct PipelineSupervisor {
     pipeline_id: u32,
     replica_registry: Arc<ReplicaRegistry>,
-    pipeline_configuration: PipelineRuntimeConfig, // por ahora solo un string, pero podría ser una struct con más info
+    pipeline_configuration: PipelineConfiguration, // por ahora solo un string, pero podría ser una struct con más info
     data_source: DataSourceThreadSafe,
     data_processor: DataProcessorThreadSafe,
     data_store: DataExternalStoreThreadSafe,
@@ -46,7 +38,7 @@ pub struct PipelineSupervisor {
 impl PipelineSupervisor {
     pub fn new(
         pipeline_id: u32,
-        pipeline_configuration: PipelineRuntimeConfig,
+        pipeline_configuration: PipelineConfiguration,
         data_source: DataSourceThreadSafe,
         data_processor: DataProcessorThreadSafe,
         data_store: DataExternalStoreThreadSafe,
@@ -63,7 +55,7 @@ impl PipelineSupervisor {
     pub fn pipeline_id(&self) -> u32 {
         self.pipeline_id
     }
-    pub fn pipeline_configuration(&self) -> &PipelineRuntimeConfig {
+    pub fn pipeline_configuration(&self) -> &PipelineConfiguration {
         &self.pipeline_configuration
     }
     pub fn replica_registry(&self) -> Arc<ReplicaRegistry> {
@@ -94,7 +86,6 @@ impl Actor for PipelineSupervisor {
     }
 
     fn stopped(&mut self, _ctx: &mut Self::Context) {
-        
         LOGGER.info(&format!(
             "PipelineSupervisor stopped for pipeline_id={}.",
             self.pipeline_id
