@@ -14,20 +14,17 @@ static LOGGER: AppLogger = AppLogger::new(
     "iot_bee::adapters::actor_system::pipeline_actor_module::consumer_actor::DataConsumerActor",
 );
 
-pub struct DataConsumerActor<
-    U: SendDataToProcessor + Send + Sync + 'static,
-> {
-    pub data_source: Arc<dyn DataSource + Send + Sync + 'static>,
-    pub data_processor: Arc<U>, // esto debe ser el actor que implementa SendDataToProcessor
+type DataProcessorThreadSafe = Arc<dyn SendDataToProcessor + Send + Sync + 'static>;
+type DataSourceThreadSafe = Arc<dyn DataSource + Send + Sync + 'static>;
+pub struct DataConsumerActor {
+    pub data_source: DataSourceThreadSafe,
+    pub data_processor: DataProcessorThreadSafe, // esto debe ser el actor que implementa SendDataToProcessor
     state: ConsumerActorState,
     sender: Option<Sender<DataConsumerRawType>>,
 }
 
-impl<U> DataConsumerActor<U>
-where
-    U: SendDataToProcessor + Send + Sync + 'static,
-{
-    pub fn new(data_source: Arc<dyn DataSource + Send + Sync + 'static>, data_processor: Arc<U>) -> Self {
+impl DataConsumerActor {
+    pub fn new(data_source: DataSourceThreadSafe, data_processor: DataProcessorThreadSafe) -> Self {
         DataConsumerActor {
             data_source,
             data_processor,
@@ -38,14 +35,14 @@ where
     pub fn data_source(&self) -> Arc<dyn DataSource + Send + Sync + 'static> {
         Arc::clone(&self.data_source)
     }
-    pub fn data_processor(&self) -> Arc<U> {
+    pub fn data_processor(&self) -> Arc<dyn SendDataToProcessor + Send + Sync + 'static> {
         Arc::clone(&self.data_processor)
     }
     pub fn sender(&self) -> Option<Sender<DataConsumerRawType>> {
         self.sender.clone()
     }
     pub fn state(&self) -> ConsumerActorState {
-        self.state.clone() 
+        self.state.clone()
     }
 
     pub fn set_state(&mut self, state: ConsumerActorState) {
@@ -57,10 +54,7 @@ where
     }
 }
 
-impl<U> Actor for DataConsumerActor<U>
-where
-    U: SendDataToProcessor + Send + Sync + 'static,
-{
+impl Actor for DataConsumerActor {
     type Context = Context<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
@@ -81,10 +75,7 @@ where
     }
 }
 
-impl<U> Supervised for DataConsumerActor<U>
-where
-    U: SendDataToProcessor + Send + Sync + 'static,
-{
+impl Supervised for DataConsumerActor {
     fn restarting(&mut self, _ctx: &mut Self::Context) {
         LOGGER.warn("DataConsumerActor is restarting...");
         self.set_state(ConsumerActorState::Idle);
@@ -97,57 +88,53 @@ where
 use super::super::general_messages::{SendActorActionMessage, SendActorActionMessageResult};
 use super::super::general_ports::SendActionToActor;
 use async_trait::async_trait;
-pub struct ConsumerActorBridge<U>
-where
-    U: SendDataToProcessor + Send + Sync + 'static,
-{
-    addr: Addr<DataConsumerActor<U>>,
+pub struct ConsumerActorBridge {
+    addr: Addr<DataConsumerActor>,
 }
 
-impl<U> ConsumerActorBridge<U>
-where
-    U: SendDataToProcessor + Send + Sync + 'static,
-{
-    pub fn new(addr: Addr<DataConsumerActor<U>>) -> Self {
-        Self { addr }
+impl ConsumerActorBridge {
+    pub fn start_new_consumer_actor_with_impl(
+        data_source: DataSourceThreadSafe,
+        data_processor: DataProcessorThreadSafe,
+    ) -> Arc<dyn SendActionToActor + Send + Sync> {
+        let actor = DataConsumerActor::new(data_source, data_processor);
+        let addr = Supervisor::start(move |_ctx| actor);
+        Arc::new(Self { addr })
     }
 }
 
 #[async_trait]
-impl<U> SendActionToActor for ConsumerActorBridge<U>
-where
-    U: SendDataToProcessor + Send + Sync + 'static,
-{
+impl SendActionToActor for ConsumerActorBridge {
     async fn send_stop_actor(&self) -> SendActorActionMessageResult {
         self.addr
             .send(SendActorActionMessage::stop())
             .await
-            .map_err(|e| {
-                crate::domain::error::PipelineLifecycleError::InternalCommunication {
+            .map_err(
+                |e| crate::domain::error::PipelineLifecycleError::InternalCommunication {
                     reason: format!("Failed to send stop message to consumer actor: {}", e),
-                }
-            })?
+                },
+            )?
     }
 
     async fn send_restart_actor(&self) -> SendActorActionMessageResult {
         self.addr
             .send(SendActorActionMessage::restart())
             .await
-            .map_err(|e| {
-                crate::domain::error::PipelineLifecycleError::InternalCommunication {
+            .map_err(
+                |e| crate::domain::error::PipelineLifecycleError::InternalCommunication {
                     reason: format!("Failed to send restart message to consumer actor: {}", e),
-                }
-            })?
+                },
+            )?
     }
 
     async fn get_actor_status(&self) -> SendActorActionMessageResult {
         self.addr
             .send(SendActorActionMessage::status())
             .await
-            .map_err(|e| {
-                crate::domain::error::PipelineLifecycleError::InternalCommunication {
+            .map_err(
+                |e| crate::domain::error::PipelineLifecycleError::InternalCommunication {
                     reason: format!("Failed to send status message to consumer actor: {}", e),
-                }
-            })?
+                },
+            )?
     }
 }

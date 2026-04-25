@@ -11,9 +11,7 @@ static LOGGER: AppLogger = AppLogger::new(
     "iot_bee::adapters::actor_system::pipeline_actor_module::processor_actor::handlers",
 );
 
-
-impl  Handler<ProcessDataMessage> for DataProcessorActor
-{
+impl Handler<ProcessDataMessage> for DataProcessorActor {
     type Result = ResponseFuture<ProcessDataResult>;
 
     fn handle(&mut self, msg: ProcessDataMessage, _ctx: &mut Self::Context) -> Self::Result {
@@ -38,16 +36,14 @@ impl  Handler<ProcessDataMessage> for DataProcessorActor
     }
 }
 
+use super::super::general_messages::{
+    ActorActions, ResponseActorActionMessage, SendActorActionMessage, SendActorActionMessageResult,
+};
 
-
-use super::super::general_messages::{SendActorActionMessage,SendActorActionMessageResult,ResponseActorActionMessage,ActorActions};
-
-impl Handler<SendActorActionMessage> for DataProcessorActor
-{
+impl Handler<SendActorActionMessage> for DataProcessorActor {
     type Result = ResponseFuture<SendActorActionMessageResult>;
 
     fn handle(&mut self, msg: SendActorActionMessage, _ctx: &mut Self::Context) -> Self::Result {
-        
         Box::pin(async move {
             // Aquí puedes agregar la lógica para manejar el mensaje de acción
             LOGGER.info(&format!("Received action message: {:?}", msg.action()));
@@ -73,6 +69,6 @@ impl Handler<SendActorActionMessage> for DataProcessorActor
                     Ok(ResponseActorActionMessage::running()) // Aquí puedes devolver el estado actual real
                 }
             }
-        })        
+        })
     }
 }

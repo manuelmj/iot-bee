@@ -1,8 +1,6 @@
 use crate::domain::error::DomainValidationError;
 use crate::domain::error::IoTBeeError;
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DataStoreId(u32);
 impl DataStoreId {

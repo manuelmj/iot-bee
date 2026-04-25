@@ -23,18 +23,17 @@
 use actix::prelude::*;
 use async_trait::async_trait;
 use iot_bee::adapters::actor_system::pipeline_actor_module::{
-    consumer_actor::data_consumer_actor::DataConsumerActor,
+    consumer_actor::data_consumer_actor::{DataConsumerActor,ConsumerActorBridge},
     processor_actor::data_processor_actor::{DataProcessorActor, ProcessorActorBridge},
     store_actor::data_store_actor::{DataStoreActor, StoreActorBridge},
 };
 use iot_bee::domain::entities::data_consumer_types::DataConsumerRawType;
 use iot_bee::domain::error::IoTBeeError;
 use iot_bee::domain::outbound::{data_external_store::DataExternalStore, data_source::DataSource};
+use iot_bee::logging::{AppLogger, init_tracing};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
-use iot_bee::logging::{AppLogger,init_tracing};
-
 
 static LOGGER: AppLogger = AppLogger::new("test::pipeline_integration");
 
@@ -111,7 +110,6 @@ fn generar_payloads(n: usize) -> Vec<String> {
 fn montar_pipeline(
     payloads: Vec<String>,
 ) -> (
-    Addr<DataConsumerActor<FakeDataSource, ProcessorActorBridge<StoreActorBridge<SpyExternalStore>>>>,
     Arc<Mutex<Vec<String>>>,
     Arc<tokio::sync::Semaphore>,
 ) {
@@ -120,19 +118,26 @@ fn montar_pipeline(
     let sem = Arc::new(tokio::sync::Semaphore::new(0));
 
     // 1. DataStoreActor + bridge (extremo de salida)
-    let spy = Arc::new(SpyExternalStore::new(Arc::clone(&recibidos), Arc::clone(&sem)));
-    let store_bridge = Arc::new(StoreActorBridge::new(DataStoreActor::new(spy).start()));
+    let spy = Arc::new(SpyExternalStore::new(
+        Arc::clone(&recibidos),
+        Arc::clone(&sem),
+    ));
+    let store_bridge = StoreActorBridge::start_new_store_actor_with_impl(spy);
+    // let store_bridge = Arc::new(StoreActorBridge::new(DataStoreActor::new(spy).start()));
 
     // 2. DataProcessorActor + bridge (capa intermedia)
-    let processor_bridge = Arc::new(ProcessorActorBridge::new(
-        DataProcessorActor::new(store_bridge).start(),
-    ));
+    // let processor_bridge = Arc::new(ProcessorActorBridge::new(
+    //     DataProcessorActor::new(store_bridge).start(),
+    // ));
+    let processor_bridge = ProcessorActorBridge::start_new_processor_actor_with_impl(store_bridge);
 
     // 3. DataConsumerActor (extremo de entrada; auto-inicia en started())
     let source = Arc::new(FakeDataSource::con_payloads(payloads));
-    let consumer_addr = DataConsumerActor::new(source, processor_bridge).start();
+    // let consumer_addr = DataConsumerActor::new(source, processor_bridge).start();
+    
+    let _consumer_addr = ConsumerActorBridge::start_new_consumer_actor_with_impl(source, processor_bridge);
 
-    (consumer_addr, recibidos, sem)
+    (recibidos, sem)
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -144,7 +149,7 @@ async fn pipeline_propaga_todos_los_mensajes_de_extremo_a_extremo() {
     const N: usize = 5;
     let payloads = generar_payloads(N);
 
-    let (_consumer, recibidos, sem) = montar_pipeline(payloads.clone());
+    let (recibidos, sem) = montar_pipeline(payloads.clone());
 
     // Esperar a que todos los mensajes salgan por el store (máx. 5 s).
     let _ = tokio::time::timeout(Duration::from_secs(5), sem.acquire_many(N as u32))
@@ -152,7 +157,11 @@ async fn pipeline_propaga_todos_los_mensajes_de_extremo_a_extremo() {
         .expect("Timeout: no llegaron todos los mensajes al store en 5 segundos");
 
     let datos = recibidos.lock().unwrap();
-    assert_eq!(datos.len(), N, "Deben llegar exactamente {N} mensajes al store");
+    assert_eq!(
+        datos.len(),
+        N,
+        "Deben llegar exactamente {N} mensajes al store"
+    );
 
     for payload in &payloads {
         assert!(
@@ -169,7 +178,7 @@ async fn pipeline_propaga_lote_grande_sin_perdidas() {
     const N: usize = 50;
     let payloads = generar_payloads(N);
 
-    let (_consumer, recibidos, sem) = montar_pipeline(payloads);
+    let (recibidos, sem) = montar_pipeline(payloads);
 
     let _ = tokio::time::timeout(Duration::from_secs(10), sem.acquire_many(N as u32))
         .await
@@ -182,7 +191,7 @@ async fn pipeline_propaga_lote_grande_sin_perdidas() {
 /// bloquear ni entregar mensajes fantasma.
 #[actix_rt::test]
 async fn pipeline_con_fuente_vacia_no_entrega_mensajes() {
-    let (_consumer, recibidos, sem) = montar_pipeline(vec![]);
+    let (recibidos, sem) = montar_pipeline(vec![]);
 
     // Dar tiempo a que cualquier mensaje fantasma pudiera llegar.
     tokio::time::sleep(Duration::from_millis(200)).await;

@@ -1,10 +1,10 @@
-use actix::prelude::*;
-use crate::domain::outbound::data_processor_actions::DataProcessorActions;
-use crate::domain::outbound::data_external_store::DataExternalStore;
-use crate::domain::outbound::data_source::DataSource;
-use std::sync::Arc;
 use super::pipeline_abstraction::ReplicaRegistry;
+use crate::domain::outbound::data_external_store::DataExternalStore;
+use crate::domain::outbound::data_processor_actions::DataProcessorActions;
+use crate::domain::outbound::data_source::DataSource;
 use crate::logging::AppLogger;
+use actix::prelude::*;
+use std::sync::Arc;
 
 static LOGGER: AppLogger = AppLogger::new(
     "iot_bee::adapters::actor_system::supervisor_pipeline_life_time::PipelineSupervisor",
@@ -30,26 +30,30 @@ type DataSourceThreadSafe = Arc<dyn DataSource + Send + Sync + 'static>;
 type DataProcessorThreadSafe = Arc<dyn DataProcessorActions + Send + Sync + 'static>;
 type DataExternalStoreThreadSafe = Arc<dyn DataExternalStore + Send + Sync + 'static>;
 
-
-pub struct PipelineRuntimeConfig{
+pub struct PipelineRuntimeConfig {
     pub pipeline_replica_count: usize,
-    pub pipeline_name: String, 
+    pub pipeline_name: String,
 }
 pub struct PipelineSupervisor {
     pipeline_id: u32,
-    replica_registry: ReplicaRegistry,
+    replica_registry: Arc<ReplicaRegistry>,
     pipeline_configuration: PipelineRuntimeConfig, // por ahora solo un string, pero podría ser una struct con más info
     data_source: DataSourceThreadSafe,
     data_processor: DataProcessorThreadSafe,
     data_store: DataExternalStoreThreadSafe,
 }
 
-
 impl PipelineSupervisor {
-    pub fn new(pipeline_id: u32, pipeline_configuration: PipelineRuntimeConfig, data_source: DataSourceThreadSafe, data_processor: DataProcessorThreadSafe, data_store: DataExternalStoreThreadSafe) -> Self {
+    pub fn new(
+        pipeline_id: u32,
+        pipeline_configuration: PipelineRuntimeConfig,
+        data_source: DataSourceThreadSafe,
+        data_processor: DataProcessorThreadSafe,
+        data_store: DataExternalStoreThreadSafe,
+    ) -> Self {
         Self {
             pipeline_id,
-            replica_registry: ReplicaRegistry::new(),
+            replica_registry: Arc::new(ReplicaRegistry::new()),
             pipeline_configuration,
             data_source,
             data_processor,
@@ -62,22 +66,21 @@ impl PipelineSupervisor {
     pub fn pipeline_configuration(&self) -> &PipelineRuntimeConfig {
         &self.pipeline_configuration
     }
-    pub fn replica_registry(&mut self) -> &mut ReplicaRegistry {
-        &mut self.replica_registry
+    pub fn replica_registry(&self) -> Arc<ReplicaRegistry> {
+        Arc::clone(&self.replica_registry)
     }
 
     pub fn data_source(&self) -> DataSourceThreadSafe {
-        self.data_source.clone()
+        Arc::clone(&self.data_source)
     }
 
     pub fn data_processor(&self) -> DataProcessorThreadSafe {
-        self.data_processor.clone()
+        Arc::clone(&self.data_processor)
     }
 
     pub fn data_store(&self) -> DataExternalStoreThreadSafe {
-        self.data_store.clone()
+        Arc::clone(&self.data_store)
     }
-
 }
 
 impl Actor for PipelineSupervisor {
@@ -91,18 +94,11 @@ impl Actor for PipelineSupervisor {
     }
 
     fn stopped(&mut self, _ctx: &mut Self::Context) {
-        match self.replica_registry.replica_count() {
-            Ok(n) if n > 0 => {
-                LOGGER.warn(&format!(
-                    "PipelineSupervisor for pipeline_id={} stopped with {} replica(s) still registered.",
-                    self.pipeline_id, n
-                ));
-            }
-            _ => LOGGER.info(&format!(
-                "PipelineSupervisor for pipeline_id={} stopped.",
-                self.pipeline_id
-            )),
-        }
+        
+        LOGGER.info(&format!(
+            "PipelineSupervisor stopped for pipeline_id={}.",
+            self.pipeline_id
+        ));
     }
 }
 

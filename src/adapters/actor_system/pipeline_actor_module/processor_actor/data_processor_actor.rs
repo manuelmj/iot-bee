@@ -50,21 +50,24 @@ impl Supervised for DataProcessorActor {
 // Adapta Addr<DataProcessorActor> al trait SendDataToProcessor.
 // El consumer nunca conoce al actor; solo conoce el trait.
 //──────────────────────────────────────────────────────────────────────────────
-
+#[derive(Clone)]
 pub struct ProcessorActorBridge {
     addr: Addr<DataProcessorActor>,
 }
 //este es el que debo inyectar en el consumer actor para que pueda enviarle datos al processor actor sin conocerlo directamente.
 impl ProcessorActorBridge {
-    pub fn start_new_processor_actor(data_store: DataStoreThreadSafe) -> Self {
+    
+    pub fn start_new_processor_actor_with_impl(
+        data_store: DataStoreThreadSafe,
+    ) -> Arc<dyn SendDataToProcessor + Send + Sync> {
         let actor = DataProcessorActor::new(Arc::clone(&data_store));
-        let addr = Supervisor::start(move |_ctx| {actor});
-        Self { addr }
+        let addr = Supervisor::start(move |_ctx| actor);
+        Arc::new(Self { addr })
     }
 }
 
 #[async_trait]
-impl SendDataToProcessor for ProcessorActorBridge {  
+impl SendDataToProcessor for ProcessorActorBridge {
     async fn send(&self, data: &DataConsumerRawType) -> Result<(), IoTBeeError> {
         self.addr
             .send(ProcessDataMessage::new(data.clone()))
@@ -74,14 +77,11 @@ impl SendDataToProcessor for ProcessorActorBridge {
             })?
     }
 }
-use super::super::general_messages::{SendActorActionMessageResult, SendActorActionMessage};
+use super::super::general_messages::{SendActorActionMessage, SendActorActionMessageResult};
 use super::super::general_ports::SendActionToActor;
 
 #[async_trait]
-impl SendActionToActor for ProcessorActorBridge
-{
-    
-
+impl SendActionToActor for ProcessorActorBridge {
     async fn send_stop_actor(&self) -> SendActorActionMessageResult {
         self.addr
             .send(SendActorActionMessage::stop())
@@ -105,9 +105,12 @@ impl SendActionToActor for ProcessorActorBridge
             .send(SendActorActionMessage::status())
             .await
             .map_err(|e| PipelineLifecycleError::InternalCommunication {
-                reason: format!("Failed to send get status message to processor actor: {}", e),
+                reason: format!(
+                    "Failed to send get status message to processor actor: {}",
+                    e
+                ),
             })?
-        }
+    }
 }
 
 //────────────────────────────────────────────────────────────────────────────────────────────────────────

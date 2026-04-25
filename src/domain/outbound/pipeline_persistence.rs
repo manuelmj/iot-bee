@@ -133,5 +133,4 @@ pub trait PipelineControllerRepository {
     // async fn update_pipeline();
     //TODO:controlar el ciclo de vida del pipeline cuando se realiza un delete
     // async fn delete_pipeline();
-    
 }

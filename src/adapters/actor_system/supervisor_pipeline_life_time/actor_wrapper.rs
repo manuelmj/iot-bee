@@ -2,9 +2,9 @@ use actix::prelude::*;
 
 use super::messges::{
     AddReplicaMessage, RemoveReplicaMessage, ReplicaCountMessage, RestartAllReplicasMessage,
-    StatusAllReplicasMessage, StopAllReplicasMessage,StartPipelineMessage
+    StartPipelineMessage, StatusAllReplicasMessage, StopAllReplicasMessage,
 };
-use super::pipeline_abstraction::{AllReplicasResult, PipelineAbstractionController};
+use super::pipeline_abstraction::{PipelineAbstractionController};
 use super::pipeline_supervisor::PipelineSupervisor;
 use crate::domain::error::{IoTBeeError, PipelineLifecycleError};
 
@@ -14,16 +14,12 @@ use crate::domain::error::{IoTBeeError, PipelineLifecycleError};
 // como métodos async tipados sin exponer el tipo Actor al exterior.
 // Addr<A> implementa Clone, por lo que el derive es suficiente.
 
-
 pub struct SupervisorPipelineBridge {
     addr: Addr<PipelineSupervisor>,
 }
 
 impl SupervisorPipelineBridge {
-    pub fn new(
-        addr: Addr<PipelineSupervisor>,
-        
-    ) -> Self {
+    pub fn new(addr: Addr<PipelineSupervisor>) -> Self {
         Self { addr }
     }
 
@@ -58,21 +54,21 @@ impl SupervisorPipelineBridge {
             .map_err(mailbox_err)?
     }
 
-    pub async fn stop_all(&self) -> Result<AllReplicasResult, IoTBeeError> {
+    pub async fn stop_all(&self) -> Result<(), IoTBeeError> {
         self.addr
             .send(StopAllReplicasMessage)
             .await
             .map_err(mailbox_err)?
     }
 
-    pub async fn restart_all(&self) -> Result<AllReplicasResult, IoTBeeError> {
+    pub async fn restart_all(&self) -> Result<(), IoTBeeError> {
         self.addr
             .send(RestartAllReplicasMessage)
             .await
             .map_err(mailbox_err)?
     }
 
-    pub async fn status_all(&self) -> Result<AllReplicasResult, IoTBeeError> {
+    pub async fn status_all(&self) -> Result<(), IoTBeeError> {
         self.addr
             .send(StatusAllReplicasMessage)
             .await

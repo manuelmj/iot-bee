@@ -1,6 +1,6 @@
 use actix::prelude::*;
 
-use super::pipeline_abstraction::{AllReplicasResult, PipelineAbstractionController};
+use super::pipeline_abstraction::{PipelineAbstractionController};
 use crate::domain::error::IoTBeeError;
 
 // StartPipeline
@@ -51,7 +51,7 @@ impl Message for ReplicaCountMessage {
 pub struct StopAllReplicasMessage;
 
 impl Message for StopAllReplicasMessage {
-    type Result = Result<AllReplicasResult, IoTBeeError>;
+    type Result = Result<(), IoTBeeError>;
 }
 
 // ── RestartAllReplicas ────────────────────────────────────────────────────────
@@ -60,7 +60,7 @@ impl Message for StopAllReplicasMessage {
 pub struct RestartAllReplicasMessage;
 
 impl Message for RestartAllReplicasMessage {
-    type Result = Result<AllReplicasResult, IoTBeeError>;
+    type Result = Result<(), IoTBeeError>;
 }
 
 // ── StatusAllReplicas ─────────────────────────────────────────────────────────
@@ -69,5 +69,5 @@ impl Message for RestartAllReplicasMessage {
 pub struct StatusAllReplicasMessage;
 
 impl Message for StatusAllReplicasMessage {
-    type Result = Result<AllReplicasResult, IoTBeeError>;
+    type Result = Result<(), IoTBeeError>;
 }
