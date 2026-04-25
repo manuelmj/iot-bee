@@ -14,11 +14,7 @@ use crate::adapters::actor_system::pipeline_actor_module::{
     processor_actor::data_processor_actor::ProcessorActorBridge,
     store_actor::data_store_actor::StoreActorBridge,
 };
-use crate::logging::AppLogger;
 use std::sync::Arc;
-
-static LOGGER: AppLogger =
-    AppLogger::new("iot_bee::adapters::actor_system::supervisor_pipeline_life_time::handlers");
 
 // ── StartPipeline ─────────────────────────────────────────────
 impl Handler<StartPipelineMessage> for PipelineSupervisor {
@@ -26,8 +22,6 @@ impl Handler<StartPipelineMessage> for PipelineSupervisor {
 
     fn handle(&mut self, _msg: StartPipelineMessage, _ctx: &mut Context<Self>) -> Self::Result {
         let replica_count = self.pipeline_configuration().pipeline_replication();
-        let pipeline_id = self.pipeline_id();
-        let pipeline_name = self.pipeline_configuration().pipeline_name().to_string();
         let data_store = self.data_store();
         let data_source = self.data_source();
         let registry = self.replica_registry();
@@ -74,12 +68,13 @@ impl Handler<StartPipelineMessage> for PipelineSupervisor {
                     ),
                 }
             }
-            // // si alguna falló
-            for _ in errors {
-                LOGGER.error(format!(
-                    "Error al crear una réplica del pipeline {:?}:{:?}",
-                    pipeline_id, pipeline_name
-                ));
+
+            // si alguna falló — limpias todo antes de insertar
+            if !errors.is_empty() {
+                for pipeline in pipelines {
+                    pipeline.stop().await.ok(); // limpieza explícita de las que sí crearon
+                }
+                return Err(errors.remove(0));
             }
 
             // si todas fueron exitosas, las insertas al registro
