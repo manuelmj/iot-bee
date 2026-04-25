@@ -77,3 +77,7 @@ path = "test/pipeline_integration.rs"
 name = "supervisor_actor"
 path = "test/supervisor_actor.rs"
 
+
+[[test]]
+name = "actor_system"
+path = "test/actor_system_test.rs"

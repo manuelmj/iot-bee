@@ -16,6 +16,10 @@ use crate::adapters::actor_system::pipeline_actor_module::{
 };
 use std::sync::Arc;
 
+
+use crate::logging::AppLogger;
+static LOGGER: AppLogger = AppLogger::new("supervisor_pipeline_life_time::handlers");
+
 // ── StartPipeline ─────────────────────────────────────────────
 impl Handler<StartPipelineMessage> for PipelineSupervisor {
     type Result = ResponseFuture<Result<(), IoTBeeError>>;
@@ -26,6 +30,7 @@ impl Handler<StartPipelineMessage> for PipelineSupervisor {
         let data_source = self.data_source();
         let registry = self.replica_registry();
 
+        LOGGER.info(&format!("Iniciando pipeline con {} réplicas...", replica_count));
         Box::pin(async move {
             // Crear todas las réplicas en paralelo
             let mut tasks = Vec::new();
@@ -34,7 +39,8 @@ impl Handler<StartPipelineMessage> for PipelineSupervisor {
                 let data_store = data_store.clone();
                 let data_source = data_source.clone();
 
-                let task = tokio::spawn(async move {
+                let task = actix::spawn(async move {
+                    //TODO: implementar a futuro un result en los estart para validar que el actor que inicia esta completamente sano. 
                     let store = StoreActorBridge::start_new_store_actor_with_impl(data_store);
                     let processor = ProcessorActorBridge::start_new_processor_actor_with_impl(
                         Arc::clone(&store),

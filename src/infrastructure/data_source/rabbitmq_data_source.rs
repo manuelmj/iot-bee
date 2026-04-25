@@ -256,7 +256,9 @@ impl RabbitMQDataSource {
         channel
             .queue_declare(
                 queue_name.into(),
-                QueueDeclareOptions::default(),
+                QueueDeclareOptions{
+                    durable: true,
+                    ..Default::default()},
                 FieldTable::default(),
             )
             .await
