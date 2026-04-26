@@ -6,12 +6,17 @@ use crate::adapters::actor_system::pipeline_actor_module::consumer_actor::{
     data_consumer_actor::DataConsumerActor,
     messages::{ConsumerActorAction, ConsumerActorActionMessage, ConsumerActorState},
 };
+use crate::adapters::actor_system::pipeline_actor_module::general_messages::{
+    ActorActions, ResponseActorActionMessage, SendActorActionMessage, SendActorActionMessageResult,
+};
 use crate::domain::entities::data_consumer_types::DataConsumerRawType;
+use crate::domain::error::PipelineLifecycleError;
 use crate::logging::AppLogger;
 
 static LOGGER: AppLogger = AppLogger::new(
     "iot_bee::adapters::actor_system::pipeline_actor_module::consumer_actor::handlers",
 );
+use tokio::time::sleep;
 
 const CHANNEL_CAPACITY: usize = 100;
 
@@ -44,7 +49,8 @@ impl Handler<ConsumerActorActionMessage> for DataConsumerActor {
                     }
                     LOGGER.info("DataConsumerActor channel closed, stopping consumption.");
                     actor_addr.do_send(ConsumerActorActionMessage::channel_died());
-                });
+                })
+                .into_actor(self);
 
                 Box::pin(
                     wrap_future::<_, Self>(async move { data_source.start_to_consume(tx).await })
@@ -117,9 +123,9 @@ impl Handler<ConsumerActorActionMessage> for DataConsumerActor {
     }
 }
 
-use crate::adapters::actor_system::pipeline_actor_module::general_messages::{
-    ActorActions, ResponseActorActionMessage, SendActorActionMessage, SendActorActionMessageResult,
-};
+//
+// Handler implementation for receiving control messages (Stop, Restart, Status) from external sources via SendActorActionMessage
+//
 
 impl Handler<SendActorActionMessage> for DataConsumerActor {
     type Result = ResponseFuture<SendActorActionMessageResult>;
@@ -128,17 +134,46 @@ impl Handler<SendActorActionMessage> for DataConsumerActor {
         match msg.action() {
             ActorActions::Stop => {
                 LOGGER.info("DataConsumerActor: Stop action received.");
-                ctx.address()
-                    .do_send(ConsumerActorActionMessage::stop_consuming());
-                Box::pin(async { Ok(ResponseActorActionMessage::stopped()) })
+                ctx.stop();
+                Box::pin(async move { Ok(ResponseActorActionMessage::stopped()) })
             }
             ActorActions::Restart => {
-                LOGGER.info("DataConsumerActor: Restart action received.");
-                ctx.address()
-                    .do_send(ConsumerActorActionMessage::stop_consuming());
-                ctx.address()
-                    .do_send(ConsumerActorActionMessage::start_consuming());
-                Box::pin(async { Ok(ResponseActorActionMessage::restarting()) })
+                let context = ctx.address();
+                Box::pin(async move {
+                    LOGGER.info("DataConsumerActor: Restart action received.");
+                    let stop_result = context
+                        .send(ConsumerActorActionMessage::stop_consuming())
+                        .await
+                        .map_err(|e| PipelineLifecycleError::InternalCommunication {
+                            reason: (e.to_string()),
+                        })?;
+
+                    if stop_result != ConsumerActorState::Stopping
+                        && stop_result != ConsumerActorState::Stopped
+                    {
+                        LOGGER.warn(format!("DataConsumerActor: Unexpected state after stop command: {:?}. Continuing with restart.", stop_result));
+                        return Ok(ResponseActorActionMessage::failed());
+                    }
+                    LOGGER.info(
+                        "DataConsumerActor: Stop command acknowledged, proceeding with restart.",
+                    );
+
+                    sleep(std::time::Duration::from_millis(100)).await;
+                    let start_result = context
+                        .send(ConsumerActorActionMessage::start_consuming())
+                        .await
+                        .map_err(|e| PipelineLifecycleError::InternalCommunication {
+                            reason: (e.to_string()),
+                        })?;
+                    if start_result != ConsumerActorState::Consuming
+                        && start_result != ConsumerActorState::Reconnecting
+                    {
+                        LOGGER.warn(format!("DataConsumerActor: Unexpected state after start command: {:?}. Restart may have failed.", start_result));
+                        return Ok(ResponseActorActionMessage::failed());
+                    }
+                    LOGGER.info("DataConsumerActor: Restart completed successfully.");
+                    Ok(ResponseActorActionMessage::restarting())
+                })
             }
             ActorActions::Status => {
                 LOGGER.info("DataConsumerActor: Status action received.");
@@ -155,10 +190,6 @@ impl Handler<SendActorActionMessage> for DataConsumerActor {
                     };
                     Ok(status)
                 })
-            }
-            _ => {
-                LOGGER.warn("DataConsumerActor: Unknown action received.");
-                Box::pin(async { Ok(ResponseActorActionMessage::failed()) })
             }
         }
     }

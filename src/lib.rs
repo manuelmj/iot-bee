@@ -12,3 +12,4 @@ pub mod composition;
 pub mod domain;
 pub mod infrastructure;
 pub mod logging;
+pub mod config;

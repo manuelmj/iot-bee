@@ -56,7 +56,6 @@ pub struct ProcessorActorBridge {
 }
 //este es el que debo inyectar en el consumer actor para que pueda enviarle datos al processor actor sin conocerlo directamente.
 impl ProcessorActorBridge {
-    
     pub fn start_new_processor_actor_with_impl(
         data_store: DataStoreThreadSafe,
     ) -> Arc<dyn SendDataToProcessor + Send + Sync> {

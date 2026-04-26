@@ -57,14 +57,12 @@ pub struct StoreActorBridge {
     addr: Addr<DataStoreActor>,
 }
 impl StoreActorBridge {
-     
-
     pub fn start_new_store_actor_with_impl(
         external_store: DataExternalStoreThreadSafe,
     ) -> Arc<dyn SendDataToStore + Send + Sync> {
         //iniciar el actor usando supervisor
-        let acotr = DataStoreActor::new(Arc::clone(&external_store));
-        let addr = Supervisor::start(move |_ctx| acotr);
+        let actor = DataStoreActor::new(Arc::clone(&external_store));
+        let addr = Supervisor::start(move |_ctx| actor);
         Arc::new(Self { addr })
     }
 }

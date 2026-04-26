@@ -8,6 +8,7 @@ use crate::logging::AppLogger;
 static LOGGER: AppLogger = AppLogger::new(
     "iot_bee::adapters::actor_system::supervisor_actor_system::SystemActorSupervisor",
 );
+use std::sync::Arc;
 
 // ── SystemActorSupervisor ─────────────────────────────────────────────────────
 //
@@ -23,6 +24,7 @@ static LOGGER: AppLogger = AppLogger::new(
 //   list_pipeline_ids()     → copia de las claves
 
 pub struct SystemActorSupervisor {
+    //id del pipeline   → bridge al PipelineSupervisor de ese pipeline
     supervisors: HashMap<u32, SupervisorPipelineBridge>,
 }
 
@@ -34,8 +36,8 @@ impl SystemActorSupervisor {
     }
 
     /// Clona el bridge del pipeline dado, si existe.
-    pub(super) fn get_bridge(&self, pipeline_id: u32) -> Option<SupervisorPipelineBridge> {
-        self.supervisors.get(&pipeline_id).cloned()
+    pub(super) fn get_bridge(&self, pipeline_id: u32) -> Option<&SupervisorPipelineBridge> {
+        self.supervisors.get(&pipeline_id)
     }
 
     /// Registra un bridge nuevo para el pipeline dado.
@@ -44,11 +46,7 @@ impl SystemActorSupervisor {
     }
 
     /// Elimina y devuelve el bridge del pipeline dado.
-    pub(super) fn remove_pipeline(
-        &mut self,
-        pipeline_id: u32,
-    ) -> Option<SupervisorPipelineBridge> {
-        
+    pub(super) fn remove_pipeline(&mut self, pipeline_id: u32) -> Option<SupervisorPipelineBridge> {
         self.supervisors.remove(&pipeline_id)
     }
 
@@ -79,35 +77,4 @@ impl Supervised for SystemActorSupervisor {
     }
 }
 
-
-
-
-// brigde wrapper para enviar mensajes a SystemActorSupervisor sin exponer su ActorAddr ni lógica de routing a handlers.rs
-// use crate::domain::inbound::pipeline_lifecycle::PipelineLifecycle;
-// use crate::domain::value_objects::pipelines_values::{PipelineStatus,DataStoreId};
-// use async_trait ::async_trait;
-
-// use super::messages::{
-//     CreatePipelineMessage, DeletePipelineMessage, ListPipelinesMessage,
-//     SystemAddReplicaMessage, SystemRemoveReplicaMessage,
-// };
-
-
-// pub struct PipelineActorSupervisorSystemBridge {
-//     supervisor_addr: Addr<SystemActorSupervisor>,
-// }
-
-// #[async_trait]
-// impl PipelineLifecycle for PipelineActorSupervisorSystemBridge {
-//     // Implementación de los métodos de PipelineLifecycle aquí
-//     async fn get_status_by_id(
-//         &self,
-//         pipeline_id: &DataStoreId,
-//     ) -> Result<PipelineStatus, IoTBeeError> {
-//        let result = self.supervisor_addr
-//             .send(GetPipelineStatusMessage::new(pipeline_id.clone()))
-//             .await
-//             .map_err(mailbox_err)?;
-//        Ok(result)
-//     }    
-// }
+// ──────────────────────────────────────────────

@@ -4,28 +4,50 @@ use super::messges::{
     AddReplicaMessage, RemoveReplicaMessage, ReplicaCountMessage, RestartAllReplicasMessage,
     StartPipelineMessage, StatusAllReplicasMessage, StopAllReplicasMessage,
 };
-use super::pipeline_abstraction::{PipelineAbstractionController};
+use super::pipeline_abstraction::PipelineAbstractionController;
 use super::pipeline_supervisor::PipelineSupervisor;
 use crate::domain::error::{IoTBeeError, PipelineLifecycleError};
 
+use super::{DataExternalStoreThreadSafe, DataProcessorThreadSafe, DataSourceThreadSafe};
+use crate::domain::entities::pipeline_data::PipelineConfiguration;
 // ── SupervisorPipelineBridge ──────────────────────────────────────────────────
 //
 // Wrapper cloneable de Addr<PipelineSupervisor>. Expone la API del supervisor
 // como métodos async tipados sin exponer el tipo Actor al exterior.
 // Addr<A> implementa Clone, por lo que el derive es suficiente.
-
 pub struct SupervisorPipelineBridge {
     addr: Addr<PipelineSupervisor>,
 }
 
 impl SupervisorPipelineBridge {
-    pub fn new(addr: Addr<PipelineSupervisor>) -> Self {
+    pub fn start_new_pipeline_supervisor(
+        pipeline_id: u32,
+        pipeline_configuration: PipelineConfiguration,
+        data_store: DataExternalStoreThreadSafe,
+        data_source: DataSourceThreadSafe,
+        data_processor: DataProcessorThreadSafe,
+    ) -> Self {
+        let pipeline_supervisor = PipelineSupervisor::new(
+            pipeline_id,
+            pipeline_configuration,
+            data_source,
+            data_processor,
+            data_store,
+        );
+        let addr = Supervisor::start(move |_ctx| pipeline_supervisor);
         Self { addr }
     }
 
     pub async fn start_pipeline(&self) -> Result<(), IoTBeeError> {
         self.addr
             .send(StartPipelineMessage)
+            .await
+            .map_err(mailbox_err)?
+    }
+
+    pub async fn stop_pipeline(&self) -> Result<(), IoTBeeError> {
+        self.addr
+            .send(StopAllReplicasMessage)
             .await
             .map_err(mailbox_err)?
     }
@@ -50,13 +72,6 @@ impl SupervisorPipelineBridge {
     pub async fn replica_count(&self) -> Result<usize, IoTBeeError> {
         self.addr
             .send(ReplicaCountMessage)
-            .await
-            .map_err(mailbox_err)?
-    }
-
-    pub async fn stop_all(&self) -> Result<(), IoTBeeError> {
-        self.addr
-            .send(StopAllReplicasMessage)
             .await
             .map_err(mailbox_err)?
     }

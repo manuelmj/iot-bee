@@ -8,15 +8,36 @@ use crate::domain::error::IoTBeeError;
 // ── CreatePipeline ────────────────────────────────────────────────────────────
 // Crea un nuevo PipelineSupervisor para el pipeline dado.
 // Error si ya existe un supervisor para ese pipeline_id.
+use crate::domain::entities::pipeline_data::PipelineConfiguration;
+use crate::domain::outbound::{
+    data_external_store::DataExternalStore, data_processor_actions::DataProcessorActions,
+    data_source::DataSource,
+};
+use std::sync::Arc;
 
 pub struct CreatePipelineMessage {
     pub pipeline_id: u32,
-    //debe recibir toda la data necesaria para que el pipeline pueda ser usado.
+    pub pipeline_config: PipelineConfiguration,
+    pub data_source: Arc<dyn DataSource + Send + Sync>,
+    pub data_processor: Arc<dyn DataProcessorActions + Send + Sync>,
+    pub data_store: Arc<dyn DataExternalStore + Send + Sync>,
 }
 
 impl CreatePipelineMessage {
-    pub fn new(pipeline_id: u32) -> Self {
-        Self { pipeline_id }
+    pub fn new(
+        pipeline_id: u32,
+        pipeline_config: PipelineConfiguration,
+        data_source: Arc<dyn DataSource + Send + Sync>,
+        data_processor: Arc<dyn DataProcessorActions + Send + Sync>,
+        data_store: Arc<dyn DataExternalStore + Send + Sync>,
+    ) -> Self {
+        Self {
+            pipeline_id,
+            pipeline_config,
+            data_source,
+            data_processor,
+            data_store,
+        }
     }
 }
 
@@ -62,7 +83,10 @@ pub struct SystemAddReplicaMessage {
 
 impl SystemAddReplicaMessage {
     pub fn new(pipeline_id: u32, controller: PipelineAbstractionController) -> Self {
-        Self { pipeline_id, controller }
+        Self {
+            pipeline_id,
+            controller,
+        }
     }
 }
 
@@ -138,9 +162,7 @@ impl Message for StatusPipelineMessage {
     type Result = Result<AllReplicasResult, IoTBeeError>;
 }
 
-
-
-// StartAllPipelinesInLocalStorageMessage 
+// StartAllPipelinesInLocalStorageMessage
 
 pub struct StartAllPipelinesInLocalStorageMessage;
 impl Message for StartAllPipelinesInLocalStorageMessage {

@@ -49,8 +49,9 @@ impl AppLogger {
     }
 
     #[track_caller]
-    pub fn warn(&self, message: &str) {
+    pub fn warn(&self, message: impl Into<String>) {
         let location = Location::caller();
+        let message = message.into();
         tracing::warn!(
             target = self.target,
             caller_file = location.file(),
@@ -60,8 +61,9 @@ impl AppLogger {
     }
 
     #[track_caller]
-    pub fn error(&self, message: &str) {
+    pub fn error(&self, message: impl Into<String>) {
         let location = Location::caller();
+        let message = message.into();
         tracing::error!(
             target = self.target,
             caller_file = location.file(),
@@ -86,7 +88,7 @@ pub fn init_tracing() {
                 fmt::layer()
                     .with_target(true)
                     .with_thread_ids(true)
-                    .with_file(true)
+                    // .with_file(true)
                     .with_line_number(true)
                     .compact(),
             )

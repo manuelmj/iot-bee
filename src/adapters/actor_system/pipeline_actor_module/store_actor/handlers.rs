@@ -31,33 +31,34 @@ use crate::adapters::actor_system::pipeline_actor_module::general_messages::{
 impl Handler<SendActorActionMessage> for DataStoreActor {
     type Result = ResponseFuture<SendActorActionMessageResult>;
 
-    fn handle(&mut self, msg: SendActorActionMessage, _ctx: &mut Self::Context) -> Self::Result {
-        
-        let result = match msg.action() {
+    fn handle(&mut self, msg: SendActorActionMessage, ctx: &mut Self::Context) -> Self::Result {
+        match msg.action() {
             ActorActions::Stop => {
                 LOGGER.info("DataStoreActor: Stop action received.");
                 let response = ResponseActorActionMessage::stopped();
-                _ctx.stop();
-                Ok(response)
+                ctx.stop();
+                Box::pin(async move {
+                    LOGGER.info("DataStoreActor stopped");
+                    Ok(response)
+                })
             }
             ActorActions::Restart => {
                 LOGGER.info("DataStoreActor: Restart action received.");
-                //TODO: implementar la logica de reinicio. 
-                Ok(ResponseActorActionMessage::restarting())
+                //TODO: implementar la logica de reinicio.
+                Box::pin(async move {
+                    LOGGER.info("DataStoreActor restarting...");
+                    Ok(ResponseActorActionMessage::restarting())
+                })
             }
+
             ActorActions::Status => {
                 LOGGER.info("DataStoreActor: Status action received.");
                 //TODO: implementar la logica de status.
-                Ok(ResponseActorActionMessage::running())
+                Box::pin(async move {
+                    LOGGER.info("DataStoreActor running");
+                    Ok(ResponseActorActionMessage::running())
+                })
             }
-            _ => {
-                LOGGER.warn("DataStoreActor: Unknown action received.");
-                Ok(ResponseActorActionMessage::failed())
-            }
-        };
-       Box::pin(async move {
-            result
-        })
-
+        }
     }
 }
