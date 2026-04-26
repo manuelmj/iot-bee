@@ -36,8 +36,9 @@ use crate::infrastructure::persistence::repositories::pipeline_data_repository::
 use actix_web::web;
 
 use crate::infrastructure::persistence::connection::InternalDataBase;
-use std::env;
 use std::sync::Arc;
+
+use crate::config::Config;
 
 pub struct AppState {
     internal_data_base: Arc<InternalDataBase>,
@@ -45,8 +46,8 @@ pub struct AppState {
 
 impl AppState {
     pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        let data_base_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-        let internal_data_base = Arc::new(InternalDataBase::new(&data_base_url).await?);
+        let config = Config::get();
+        let internal_data_base = Arc::new(InternalDataBase::new(&config.database_url).await?);
         Ok(Self { internal_data_base })
     }
 

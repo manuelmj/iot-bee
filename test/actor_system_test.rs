@@ -18,9 +18,11 @@ use std::sync::Mutex;
 use async_trait::async_trait;
 
 //datos de infra real 
-use actix::prelude::*;
+// use actix::prelude::*;
 
 use iot_bee::infrastructure::data_source::rabbitmq_data_source::RabbitMQDataSource;
+use iot_bee::config::Config;
+
 
 static LOGGER: AppLogger = AppLogger::new("test::actor_system_test");
 
@@ -29,11 +31,12 @@ static LOGGER: AppLogger = AppLogger::new("test::actor_system_test");
 async fn test_pipeline_lifecycle() {
     init_tracing();
     LOGGER.info("Iniciando test de ciclo de vida del pipeline...");
-    //this url is for testing and it rotate in every test. 
-    let rabbitmq_url = "amqps://eqvsanpg:YY5JYvdE0SGYxhK3lYyyODnDlQKyqdc_@gerbil.rmq.cloudamqp.com/eqvsanpg";
+    let config = Config::get();
+    let rabbitmq_url = config.data_source.as_ref().expect("DATA_SOURCE no configurada");
+    let queue_name = config.queue_name.as_ref().expect("QUEUE_NAME no configurada");
     let data_source = RabbitMQDataSource::new(
         rabbitmq_url,
-        "Cola-prueba",
+        queue_name,
         "test_consumer"
     );
 
@@ -107,8 +110,8 @@ struct DummyDataProcessor;
 impl DataProcessorActions for DummyDataProcessor {
     async fn process_data(
         &self,
-        data_to_process: DataConsumerRawType,
-        process_rules: PipelineValidationSchemaModel,
+        _data_to_process: DataConsumerRawType,
+        _process_rules: PipelineValidationSchemaModel,
     ) -> Result<(), IoTBeeError> {
         Ok(())
     }

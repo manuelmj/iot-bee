@@ -27,11 +27,11 @@ use iot_bee::logging::{AppLogger, init_tracing};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
+
 static LOGGER: AppLogger = AppLogger::new("iot_bee::main");
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    dotenv::dotenv().ok();
     init_tracing();
     banner();
 

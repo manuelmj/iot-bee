@@ -35,6 +35,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 
+
 static LOGGER: AppLogger = AppLogger::new("test::pipeline_integration");
 
 // ─── Dobles de prueba ─────────────────────────────────────────────────────────

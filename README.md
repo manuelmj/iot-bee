@@ -1,9 +1,14 @@
+
+```
 SystemActorSupervisor
-    HashMap<pipeline_id, Addr<PipelineSupervisor>>   ← aquí vive el ID
          │
          ▼
-    PipelineSupervisor  (sabe que es el pipeline X, pero internamente...)
-         Vec<Arc<PipelineAbstractionController>>      ← solo réplicas, sin ID
-              [0] consumer → processor → store
-              [1] consumer → processor → store
-              [2] consumer → processor → store
+    PipelineSupervisor
+          │
+          |
+          |    
+          ->  [0] consumer → processor → store (pipeline 0)
+          ->  [1] consumer → processor → store (pipeline 1)
+          ->  [2] consumer → processor → store (pipeline 2)
+
+```
