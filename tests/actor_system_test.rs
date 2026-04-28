@@ -8,8 +8,7 @@ use domain::outbound::data_external_store::DataExternalStore;
 use domain::outbound::data_processor_actions::DataProcessorActions;
 // use domain::outbound::data_source::DataSource;
 use domain::entities::data_consumer_types::DataConsumerRawType;
-use domain::entities::pipeline_data::PipelineConfiguration; 
-use domain::entities::validation_schema::PipelineValidationSchemaModel;
+use domain::entities::pipeline_data::PipelineConfiguration;
 
 // use domain::outbound::data_source::DataSource;
 use logging::{AppLogger, init_tracing};
@@ -68,7 +67,26 @@ async fn test_pipeline_lifecycle() {
     assert!(result.is_ok(), "Error al iniciar el pipeline: {:?}", result.err());
 
 
-    tokio::time::sleep(std::time::Duration::from_secs(1000000)).await;
+    // tokio::time::sleep(std::time::Duration::from_secs(1000000)).await;
+    // En lugar de sleep enorme, usa canales o señales
+    let (tx, rx): (tokio::sync::oneshot::Sender<()>, tokio::sync::oneshot::Receiver<()>) = tokio::sync::oneshot::channel();
+    
+    tokio::spawn(async move {
+        tokio::signal::ctrl_c().await.ok();
+        let _ = tx.send(());
+        });
+
+
+    // Esperar señal o timeout razonable
+    tokio::select! {
+        _ = rx => {
+            LOGGER.info("Test finalizado por señal");
+        }
+        _ = tokio::time::sleep(std::time::Duration::from_secs(30)) => {
+            LOGGER.info("Timeout de 30 segundos alcanzado");
+        }
+    }
+// }
 
 }
 
@@ -111,8 +129,7 @@ impl DataProcessorActions for DummyDataProcessor {
     async fn process_data(
         &self,
         _data_to_process: DataConsumerRawType,
-        _process_rules: PipelineValidationSchemaModel,
-    ) -> Result<(), IoTBeeError> {
-        Ok(())
+    ) -> Result<DataConsumerRawType, IoTBeeError> {
+        DataConsumerRawType::new("{}")
     }
 }

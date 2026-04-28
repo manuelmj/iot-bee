@@ -1,17 +1,39 @@
-// use crat
-
-
-
 use std::collections::HashMap;
-use super::schemas::{PipelineSchema, ValidationRule};
+use std::sync::Mutex;
+use async_trait::async_trait;
+use serde_json::Value;
+use super::schemas::{FieldSchema, ValidationRule};
 use super::compiler::Program;
 use super::vm::{Vm, VmError};
+use domain::error::{IoTBeeError, DomainValidationError};
+use domain::entities::data_consumer_types::DataConsumerRawType;
+use domain::outbound::data_processor_actions::DataProcessorActions;
 
+// Error interno del procesador (distinto de domain::error::PipelineError)
 #[derive(Debug)]
-pub enum PipelineError {
+pub enum ProcessorError {
     RequiredFieldMissing(String),
     ValidationFailed { field: String, reason: String },
     ExecutionError { field: String, error: VmError },
+}
+
+impl From<ProcessorError> for IoTBeeError {
+    fn from(e: ProcessorError) -> Self {
+        let domain_err = match e {
+            ProcessorError::RequiredFieldMissing(field) => {
+                DomainValidationError::MissingField { field_name: field }
+            }
+            ProcessorError::ValidationFailed { field, reason } => {
+                DomainValidationError::InvalidFieldValue { field_name: field, reason }
+            }
+            ProcessorError::ExecutionError { field, error } => {
+                DomainValidationError::DataFormatError {
+                    reason: format!("Error al ejecutar operación en campo '{}': {:?}", field, error),
+                }
+            }
+        };
+        IoTBeeError::DomainValidationError(domain_err)
+    }
 }
 
 // La versión compilada de un campo:
@@ -24,23 +46,24 @@ struct CompiledField {
     program: Option<Program>,
 }
 
-
+// Mutex<Vm> permite interior mutability: process() puede tomar &self
+// en lugar de &mut self, lo que permite implementar el trait DataProcessorActions.
 pub struct PipelineDataProcessor {
     fields: HashMap<String, CompiledField>,
-    vm: Vm,
+    vm: Mutex<Vm>,
 }
 
-// use crate::domain::outbound::data_processor_actions::DataProcessorActions;
-
-
-
 impl PipelineDataProcessor {
-    // Construye el pipeline compilando todas las operaciones.
-    // Este método se llama UNA sola vez al cargar el schema.
-    pub fn new(schema: PipelineSchema) -> Self {
+    // Construye el pipeline compilando todas las operaciones a partir del JSON del schema.
+    // Este método se llama UNA sola vez. A partir de aquí solo se necesita el dato crudo.
+    // schema_json: JSON con el formato { "campo": { "type": ..., "required": ..., "operation": ... } }
+    pub fn new(schema_json: &str) -> Result<Self, IoTBeeError> {
+        let field_defs: HashMap<String, FieldSchema> = serde_json::from_str(schema_json)
+            .map_err(|e| DomainValidationError::DataFormatError {
+                reason: format!("Schema inválido: {}", e),
+            })?;
 
-
-        let fields = schema.fields
+        let fields = field_defs
             .into_iter()
             .map(|(name, field)| {
                 let program = field.operation
@@ -57,18 +80,19 @@ impl PipelineDataProcessor {
             })
             .collect();
 
-        PipelineDataProcessor {
+        Ok(PipelineDataProcessor {
             fields,
-            vm: Vm::new(),
-        }
+            vm: Mutex::new(Vm::new()),
+        })
     }
 
     // Procesa un registro. Se llama miles de veces.
     // `record` es el JSON plano: {"temperatura": 20.0, ...}
     pub fn process(
-        &mut self,
+        &self,
         record: &HashMap<String, f64>,
-    ) -> Result<HashMap<String, f64>, PipelineError> {
+    ) -> Result<HashMap<String, f64>, ProcessorError> {
+        let mut vm = self.vm.lock().unwrap();
         let mut output = HashMap::new();
 
         for (field_name, compiled) in &self.fields {
@@ -78,7 +102,7 @@ impl PipelineDataProcessor {
                 None => match compiled.default {
                     Some(d) => d,
                     None if compiled.required => {
-                        return Err(PipelineError::RequiredFieldMissing(
+                        return Err(ProcessorError::RequiredFieldMissing(
                             field_name.clone()
                         ));
                     }
@@ -90,7 +114,7 @@ impl PipelineDataProcessor {
             if let Some(rule) = &compiled.validation {
                 if let Some(min) = rule.min {
                     if raw < min {
-                        return Err(PipelineError::ValidationFailed {
+                        return Err(ProcessorError::ValidationFailed {
                             field: field_name.clone(),
                             reason: format!("{} < min({})", raw, min),
                         });
@@ -98,7 +122,7 @@ impl PipelineDataProcessor {
                 }
                 if let Some(max) = rule.max {
                     if raw > max {
-                        return Err(PipelineError::ValidationFailed {
+                        return Err(ProcessorError::ValidationFailed {
                             field: field_name.clone(),
                             reason: format!("{} > max({})", raw, max),
                         });
@@ -109,8 +133,8 @@ impl PipelineDataProcessor {
             // 3. Ejecutar la operación (o pasar directo)
             let result = match &compiled.program {
                 Some(prog) => {
-                    self.vm.run(prog, record)
-                        .map_err(|e| PipelineError::ExecutionError {
+                    vm.run(prog, record)
+                        .map_err(|e| ProcessorError::ExecutionError {
                             field: field_name.clone(),
                             error: e,
                         })?
@@ -125,18 +149,55 @@ impl PipelineDataProcessor {
     }
 }
 
+// Convierte un JSON string a HashMap<String, f64>.
+// Soporta Number, Bool (true→1.0, false→0.0). Falla para otros tipos.
+fn parse_record(json: &str) -> Result<HashMap<String, f64>, IoTBeeError> {
+    let raw: HashMap<String, Value> = serde_json::from_str(json)
+        .map_err(|e| DomainValidationError::DataFormatError {
+            reason: format!("JSON de datos inválido: {}", e),
+        })?;
 
+    let mut record = HashMap::new();
+    for (key, val) in raw {
+        let num: f64 = match val {
+            Value::Number(n) => n.as_f64().ok_or_else(|| DomainValidationError::DataFormatError {
+                reason: format!("Campo '{}' no puede convertirse a f64", key),
+            })?,
+            Value::Bool(b) => if b { 1.0 } else { 0.0 },
+            other => {
+                return Err(DomainValidationError::DataFormatError {
+                    reason: format!("Campo '{}' tiene tipo no soportado: {:?}", key, other),
+                }.into())
+            }
+        };
+        record.insert(key, num);
+    }
+    Ok(record)
+}
 
+// Deserializa el JSON del schema almacenado en PipelineValidationSchemaModel
+// en el tipo PipelineSchema que el compilador entiende.
+#[async_trait]
+impl DataProcessorActions for PipelineDataProcessor {
+    async fn process_data(
+        &self,
+        data_to_process: DataConsumerRawType,
+    ) -> Result<DataConsumerRawType, IoTBeeError> {
+        // 1. Parsear el payload crudo a un mapa numérico
+        let record = parse_record(data_to_process.value())?;
 
-// mod ast;
-// mod schema;
-// mod compiler;
-// mod vm;
-// mod pipeline;
+        // 2. Procesar con el schema ya compilado: aplica operaciones y validaciones
+        let output = self.process(&record)?;
 
-// use std::collections::HashMap;
-// use pipeline::Pipeline;
-// use schema::PipelineSchema;
+        // 3. Serializar el resultado de vuelta a JSON y envolverlo en DataConsumerRawType
+        let json = serde_json::to_string(&output)
+            .map_err(|e| DomainValidationError::DataFormatError {
+                reason: format!("Error al serializar resultado: {}", e),
+            })?;
+
+        DataConsumerRawType::new(json)
+    }
+}
 
 // fn main() {
 //     // Este string vendría de tu BD en producción

@@ -131,8 +131,6 @@ pub struct ApiComposer;
 
 impl ApiComposer {
     pub async fn run() -> std::io::Result<()> {
-        banner();
-
         let app_state = match AppState::new().await {
             Ok(state) => state,
             Err(err) => {
@@ -168,16 +166,4 @@ impl ApiComposer {
         .run()
         .await
     }
-}
-
-fn banner() {
-    use tracing::info;
-    info!("========================================");
-    info!("  ____      _______    ____             ");
-    info!(" |_  _| ___|__   __|  | __ )  ___  ___  ");
-    info!("   |||/ _ \\  | |______|  _ \\ / _ \\/ _ \\ ");
-    info!("   ||| (_) | | |______| |_) |  __/  __/ ");
-    info!("  _|_|\\___/  |_|      |____/ \\___|\\___| ");
-    info!("               IoT Bee                    ");
-    info!("========================================");
 }

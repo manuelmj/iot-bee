@@ -54,10 +54,12 @@ edition = "2024"
 authors = ["Manuel Manjarres Rivera"]
 
 [dependencies]
+domain      = { path = "crates/domain" }
 application = { path = "crates/application" }
 infrastructure = { path = "crates/infrastructure" }
 adapters    = { path = "crates/adapters" }
 logging     = { path = "crates/logging" }
+
 tokio       = { workspace = true }
 tracing     = { workspace = true }
 tracing-subscriber = { workspace = true }
@@ -65,4 +67,7 @@ dotenvy     = { workspace = true }
 actix-web     = { workspace = true }
 utoipa         = { workspace = true }
 utoipa-swagger-ui = { workspace = true }
+actix-rt       = { workspace = true }
+async-trait     = { workspace = true }
+actix           = { workspace = true }
 

@@ -1811,9 +1811,13 @@ dependencies = [
 name = "iot-bee"
 version = "0.1.0"
 dependencies = [
+ "actix",
+ "actix-rt",
  "actix-web",
  "adapters",
  "application",
+ "async-trait",
+ "domain",
  "dotenvy",
  "infrastructure",
  "logging",
