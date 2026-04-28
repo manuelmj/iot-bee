@@ -8,7 +8,7 @@ use crate::logging::AppLogger;
 static LOGGER: AppLogger = AppLogger::new(
     "iot_bee::adapters::actor_system::supervisor_actor_system::SystemActorSupervisor",
 );
-use std::sync::Arc;
+// use std::sync::Arc;
 
 // ── SystemActorSupervisor ─────────────────────────────────────────────────────
 //
@@ -46,12 +46,12 @@ impl SystemActorSupervisor {
     }
 
     /// Elimina y devuelve el bridge del pipeline dado.
-    pub(super) fn remove_pipeline(&mut self, pipeline_id: u32) -> Option<SupervisorPipelineBridge> {
+    pub(super) fn _remove_pipeline(&mut self, pipeline_id: u32) -> Option<SupervisorPipelineBridge> {
         self.supervisors.remove(&pipeline_id)
     }
 
     /// Devuelve una copia de los pipeline_ids registrados.
-    pub(super) fn list_pipeline_ids(&self) -> Vec<u32> {
+    pub(super) fn _list_pipeline_ids(&self) -> Vec<u32> {
         self.supervisors.keys().copied().collect()
     }
 }

@@ -1,6 +1,13 @@
-
- 1. Tema con la check. 
- 2. Core de alarmas. 
- 3. Integracion con el RNDC. 
- 4. Emulador core bifuracion.   
- 5. Anti jammer.  
+{
+  "temperatura": {
+    "type": "float",
+    "required": true,
+    "validation": { "min": -50.0, "max": 150.0 },
+    "operation": {
+      "type": "bin_op",
+      "op": "mul",
+      "left":  { "type": "var", "name": "temperatura" },
+      "right": { "type": "num", "value": 1.8 }
+    }
+  }
+}

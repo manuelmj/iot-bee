@@ -1,23 +1,25 @@
 use actix::prelude::*;
 
-use super::super::supervisor_pipeline_life_time::pipeline_abstraction::AllReplicasResult;
+// use super::super::supervisor_pipeline_life_time::pipeline_abstraction::AllReplicasResult;
 use super::super::supervisor_pipeline_life_time::{
-    actor_wrapper::SupervisorPipelineBridge, pipeline_supervisor::PipelineSupervisor,
+    actor_wrapper::SupervisorPipelineBridge, 
+    // pipeline_supervisor::PipelineSupervisor,
 };
 use super::messages::{
-    CreatePipelineMessage, DeletePipelineMessage, ListPipelinesMessage, RestartPipelineMessage,
-    StatusPipelineMessage, StopPipelineMessage, SystemAddReplicaMessage,
-    SystemRemoveReplicaMessage,
+    CreatePipelineMessage,
+    //  DeletePipelineMessage, ListPipelinesMessage, RestartPipelineMessage,
+    // StatusPipelineMessage, StopPipelineMessage, SystemAddReplicaMessage,
+    // SystemRemoveReplicaMessage,
 };
 use super::system_supervisor::SystemActorSupervisor;
 use crate::domain::error::{IoTBeeError, PipelineLifecycleError};
 
-fn not_found(pipeline_id: u32) -> IoTBeeError {
-    PipelineLifecycleError::NotFound {
-        pipeline_id: pipeline_id.to_string(),
-    }
-    .into()
-}
+// fn not_found(pipeline_id: u32) -> IoTBeeError {
+//     PipelineLifecycleError::NotFound {
+//         pipeline_id: pipeline_id.to_string(),
+//     }
+//     .into()
+// }
 
 // ── CreatePipeline ── asíncrono (ResponseActFuture) ───────────────────────────
 

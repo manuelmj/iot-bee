@@ -10,6 +10,7 @@ use serde_json::Value;
 use utoipa::ToSchema;
 use validator::Validate;
 
+
 pub type SchemaId = u32;
 
 #[derive(Deserialize, Validate, ToSchema)]
@@ -18,8 +19,7 @@ pub struct CreateValidationSchemaRequest {
     #[validate(length(min = 1, max = 32))]
     pub name: String,
     #[serde(rename = "schema")]
-    #[validate(length(min = 2, max = 2048))]
-    pub json_schema: String,
+    pub json_schema:String,
 }
 
 impl CreateValidationSchemaRequest {
@@ -29,15 +29,34 @@ impl CreateValidationSchemaRequest {
                 reason: e.to_string(),
             })?;
 
-        serde_json::from_str::<Value>(&self.json_schema).map_err(|e| {
-            PipelinePersistenceError::InvalidData {
-                reason: format!("Invalid JSON schema: {}", e),
-            }
-        })?;
-
         Ok(())
     }
 }
+
+ 
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum FieldType {
+    Float,
+    Int,
+    Bool,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct ValidationRule {
+    pub min: Option<f64>,
+    pub max: Option<f64>,
+}
+
+
+
+
+
+
+//=====================
+
+
 
 #[derive(Deserialize, Validate, ToSchema)]
 pub struct UpdateValidationSchemaRequestName {
