@@ -362,10 +362,14 @@ checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
 name = "application"
 version = "0.1.0"
 dependencies = [
+ "actix-rt",
+ "actix-web",
  "async-trait",
+ "chrono",
  "domain",
  "logging",
  "thiserror",
+ "tokio",
  "uuid",
 ]
 
@@ -1777,6 +1781,8 @@ dependencies = [
 name = "infrastructure"
 version = "0.1.0"
 dependencies = [
+ "actix-rt",
+ "actix-web",
  "async-trait",
  "chrono",
  "domain",
@@ -1808,11 +1814,9 @@ dependencies = [
  "actix-web",
  "adapters",
  "application",
- "domain",
  "dotenvy",
  "infrastructure",
  "logging",
- "sqlx",
  "tokio",
  "tracing",
  "tracing-subscriber",

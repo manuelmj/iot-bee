@@ -20,17 +20,18 @@
 ///   - Que StoreActorBridge conecta correctamente Processor y Store.
 ///   - Que todos los mensajes recorren el pipeline de extremo a extremo sin pérdidas.
 ///   - Que el orden relativo de llegada se mantiene.
-use actix::prelude::*;
+// use actix::prelude::*;
+
 use async_trait::async_trait;
-use iot_bee::adapters::actor_system::pipeline_actor_module::{
-    consumer_actor::data_consumer_actor::{ConsumerActorBridge, DataConsumerActor},
-    processor_actor::data_processor_actor::{DataProcessorActor, ProcessorActorBridge},
-    store_actor::data_store_actor::{DataStoreActor, StoreActorBridge},
+use adapters::actor_system::pipeline_actor_module::{
+    consumer_actor::data_consumer_actor::{ConsumerActorBridge},
+    processor_actor::data_processor_actor::{ProcessorActorBridge},
+    store_actor::data_store_actor::{StoreActorBridge},
 };
-use iot_bee::domain::entities::data_consumer_types::DataConsumerRawType;
-use iot_bee::domain::error::IoTBeeError;
-use iot_bee::domain::outbound::{data_external_store::DataExternalStore, data_source::DataSource};
-use iot_bee::logging::{AppLogger, init_tracing};
+use domain::entities::data_consumer_types::DataConsumerRawType;
+use domain::error::IoTBeeError;
+use domain::outbound::{data_external_store::DataExternalStore, data_source::DataSource};
+use logging::{AppLogger, init_tracing};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::sync::mpsc::Sender;

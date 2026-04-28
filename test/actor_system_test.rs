@@ -1,18 +1,18 @@
 // archivo para crear un test de integracion del sistema de actores. 
 
 
-use iot_bee::adapters::actor_system::supervisor_pipeline_life_time::actor_wrapper::SupervisorPipelineBridge;
-// use iot_bee::domain::entities::pipeline_data::PipelineConfiguration;
-use iot_bee::domain::error::IoTBeeError;
-use iot_bee::domain::outbound::data_external_store::DataExternalStore;
-use iot_bee::domain::outbound::data_processor_actions::DataProcessorActions;
-// use iot_bee::domain::outbound::data_source::DataSource;
-use iot_bee::domain::entities::data_consumer_types::DataConsumerRawType;
-use iot_bee::domain::entities::pipeline_data::PipelineConfiguration; 
-use iot_bee::domain::entities::validation_schema::PipelineValidationSchemaModel;
+use adapters::actor_system::supervisor_pipeline_life_time::actor_wrapper::SupervisorPipelineBridge;
+// use domain::entities::pipeline_data::PipelineConfiguration;
+use domain::error::IoTBeeError;
+use domain::outbound::data_external_store::DataExternalStore;
+use domain::outbound::data_processor_actions::DataProcessorActions;
+// use domain::outbound::data_source::DataSource;
+use domain::entities::data_consumer_types::DataConsumerRawType;
+use domain::entities::pipeline_data::PipelineConfiguration; 
+use domain::entities::validation_schema::PipelineValidationSchemaModel;
 
-// use iot_bee::domain::outbound::data_source::DataSource;
-use iot_bee::logging::{AppLogger, init_tracing};
+// use domain::outbound::data_source::DataSource;
+use logging::{AppLogger, init_tracing};
 use std::sync::Arc;
 use std::sync::Mutex;
 use async_trait::async_trait;
@@ -20,7 +20,7 @@ use async_trait::async_trait;
 //datos de infra real 
 // use actix::prelude::*;
 
-use iot_bee::infrastructure::data_source::rabbitmq_data_source::RabbitMQDataSource;
+use infrastructure::data_source::rabbitmq_data_source::RabbitMQDataSource;
 use iot_bee::config::Config;
 
 
