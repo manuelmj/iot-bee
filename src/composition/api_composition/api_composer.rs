@@ -1,41 +1,41 @@
-// use crate::infrastructure::persistence::repositories::pipeline_repository::PipelineStoreRepository;
-// use crate::application::validation_schemas_cases::cases::{
+// use infrastructure::persistence::repositories::pipeline_repository::PipelineStoreRepository;
+// use application::validation_schemas_cases::cases::{
 //     SchemaValidationUseCases, SchemaValidationUseCasesImpl,
 // };
 
 // //para los casos de uso de connection types
-use crate::application::connection_types_cases::cases::ConnectionTypesUseCases;
-use crate::application::connection_types_cases::cases::ConnectionTypesUseCasesImpl;
-use crate::infrastructure::persistence::repositories::connection_types_repository::ConnectionTypesRepository;
+use application::connection_types_cases::cases::ConnectionTypesUseCases;
+use application::connection_types_cases::cases::ConnectionTypesUseCasesImpl;
+use infrastructure::persistence::repositories::connection_types_repository::ConnectionTypesRepository;
 
 // para los casos de uso de validation schemas
-use crate::application::validation_schemas_cases::cases::{
+use application::validation_schemas_cases::cases::{
     SchemaValidationUseCases, SchemaValidationUseCasesImpl,
 };
-use crate::infrastructure::persistence::repositories::validation_schemas_repository::ValidationSchemaRepository;
+use infrastructure::persistence::repositories::validation_schemas_repository::ValidationSchemaRepository;
 
 //para los caso de uso de  data sources
-use crate::application::data_sources_cases::cases::DataSourcesUseCases;
-use crate::application::data_sources_cases::cases::DataSourcesUseCasesImpl;
-use crate::infrastructure::persistence::repositories::data_source_repository::DataSourceRepository;
+use application::data_sources_cases::cases::DataSourcesUseCases;
+use application::data_sources_cases::cases::DataSourcesUseCasesImpl;
+use infrastructure::persistence::repositories::data_source_repository::DataSourceRepository;
 
 //para los casos de uso de pipeline groups
-use crate::application::groups_cases::cases::PipelineGroupUseCases;
-use crate::application::groups_cases::cases::PipelineGroupUseCasesImpl;
-use crate::infrastructure::persistence::repositories::groups_repository::GroupRepository;
+use application::groups_cases::cases::PipelineGroupUseCases;
+use application::groups_cases::cases::PipelineGroupUseCasesImpl;
+use infrastructure::persistence::repositories::groups_repository::GroupRepository;
 // // para los casos de uso de data stores
-use crate::application::data_store_cases::cases::DataStoreUseCases;
-use crate::application::data_store_cases::cases::DataStoreUseCasesImpl;
-use crate::infrastructure::persistence::repositories::data_store_repository::DataStoreRepository;
+use application::data_store_cases::cases::DataStoreUseCases;
+use application::data_store_cases::cases::DataStoreUseCasesImpl;
+use infrastructure::persistence::repositories::data_store_repository::DataStoreRepository;
 
 // //para los casos de pipeline data
-use crate::application::pipeline_data_cases::cases::PipelineDataUseCases;
-use crate::application::pipeline_data_cases::cases::PipelineDataUseCasesImpl;
-use crate::infrastructure::persistence::repositories::pipeline_data_repository::PipelineDataRepository;
+use application::pipeline_data_cases::cases::PipelineDataUseCases;
+use application::pipeline_data_cases::cases::PipelineDataUseCasesImpl;
+use infrastructure::persistence::repositories::pipeline_data_repository::PipelineDataRepository;
 
 use actix_web::web;
 
-use crate::infrastructure::persistence::connection::InternalDataBase;
+use infrastructure::persistence::connection::InternalDataBase;
 use std::sync::Arc;
 
 use crate::config::Config;
@@ -101,4 +101,83 @@ impl AppState {
             Arc::new(PipelineDataUseCasesImpl::new(pipeline_data_repo));
         web::Data::from(pipeline_data_use_case)
     }
+}
+
+use adapters::api::api_docs::ApiDoc;
+use logging::{AppLogger};
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
+
+
+//USE CASES
+//connection types
+use adapters::api::connection_types::routers::connection_types_scope;
+//validation schemas
+use adapters::api::validation_schemas::routers::validation_schemas_scope;
+//data sources
+use adapters::api::data_sources::routers::data_sources_scope;
+// pipeline groups
+use adapters::api::pipeline_groups::routers::pipeline_groups_scope;
+//data stores
+use adapters::api::data_store::routers::data_store_scope;
+//pipeline data
+use adapters::api::pipeline_data::routers::pipeline_data_scope;
+
+static LOGGER: AppLogger = AppLogger::new("iot_bee::composition::api_composition::api_composer");
+use actix_web::{App, HttpServer};
+
+
+pub struct ApiComposer;
+
+impl ApiComposer {
+    pub async fn run() -> std::io::Result<()> {
+        banner();
+
+        let app_state = match AppState::new().await {
+            Ok(state) => state,
+            Err(err) => {
+                LOGGER.error(&format!("Failed to initialize: {err}"));
+                std::process::exit(1);
+            }
+        };
+
+        let connection_types   = app_state.connection_types_app_state();
+        let validation_schemas = app_state.validation_schemas_app_state();
+        let data_sources       = app_state.data_sources_app_state();
+        let pipeline_groups    = app_state.pipeline_groups_app_state();
+        let data_stores        = app_state.data_stores_app_state();
+        let pipeline_data      = app_state.pipeline_data_app_state();
+
+        LOGGER.info("IoT Bee starting on http://127.0.0.1:8080");
+        LOGGER.info("Swagger UI at http://127.0.0.1:8080/swagger-ui/");
+
+        HttpServer::new(move || {
+            App::new()
+                .service(
+                    SwaggerUi::new("/swagger-ui/{_:.*}")
+                        .url("/api-docs/openapi.json", ApiDoc::openapi()),
+                )
+                .service(connection_types_scope(connection_types.clone()))
+                .service(validation_schemas_scope(validation_schemas.clone()))
+                .service(data_sources_scope(data_sources.clone()))
+                .service(pipeline_groups_scope(pipeline_groups.clone()))
+                .service(data_store_scope(data_stores.clone()))
+                .service(pipeline_data_scope(pipeline_data.clone()))
+        })
+        .bind("127.0.0.1:8080")?
+        .run()
+        .await
+    }
+}
+
+fn banner() {
+    use tracing::info;
+    info!("========================================");
+    info!("  ____      _______    ____             ");
+    info!(" |_  _| ___|__   __|  | __ )  ___  ___  ");
+    info!("   |||/ _ \\  | |______|  _ \\ / _ \\/ _ \\ ");
+    info!("   ||| (_) | | |______| |_) |  __/  __/ ");
+    info!("  _|_|\\___/  |_|      |____/ \\___|\\___| ");
+    info!("               IoT Bee                    ");
+    info!("========================================");
 }
