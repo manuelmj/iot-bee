@@ -181,7 +181,7 @@ fn parse_record(json: &str) -> Result<HashMap<String, f64>, IoTBeeError> {
 impl DataProcessorActions for PipelineDataProcessor {
     async fn process_data(
         &self,
-        data_to_process: DataConsumerRawType,
+        data_to_process: &DataConsumerRawType,
     ) -> Result<DataConsumerRawType, IoTBeeError> {
         // 1. Parsear el payload crudo a un mapa numérico
         let record = parse_record(data_to_process.value())?;

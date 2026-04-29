@@ -15,17 +15,13 @@ impl Handler<ProcessDataMessage> for DataProcessorActor {
     type Result = ResponseFuture<ProcessDataResult>;
 
     fn handle(&mut self, msg: ProcessDataMessage, _ctx: &mut Self::Context) -> Self::Result {
-        let data = msg.data();
-        // Aquí puedes agregar la lógica para procesar los datos recibidos
-        LOGGER.info(&format!("Processing data: {:?}", data));
         let data_store = self.data_store();
+        let data_processor_actions = self.data_processor_actions();
 
         Box::pin(async move {
-            //TODO: Aqui es donde se procesarian los datos antes de enviarlos al store, por ahora solo los envio tal cual
-            //aca se deben filtrar los datos, crear las transformaciones necesarias, y validaciones.
-            // tambien se debe agregar trazabilidad y observabilidad en esta seccion.
-
-            data_store.send(msg.data()).await.map_err(|e| {
+            let data = msg.data();
+            let message_process_result = data_processor_actions.process_data(data).await?;
+            data_store.send(&message_process_result).await.map_err(|e| {
                 LOGGER.error(&format!("Failed to send data to store: {}", e));
                 PipelineLifecycleError::InternalCommunication {
                     reason: format!("Failed to send data to store: {}", e),

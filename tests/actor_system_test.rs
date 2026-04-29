@@ -5,7 +5,6 @@ use adapters::actor_system::supervisor_pipeline_life_time::actor_wrapper::Superv
 // use domain::entities::pipeline_data::PipelineConfiguration;
 use domain::error::IoTBeeError;
 use domain::outbound::data_external_store::DataExternalStore;
-use domain::outbound::data_processor_actions::DataProcessorActions;
 // use domain::outbound::data_source::DataSource;
 use domain::entities::data_consumer_types::DataConsumerRawType;
 use domain::entities::pipeline_data::PipelineConfiguration;
@@ -20,10 +19,49 @@ use async_trait::async_trait;
 // use actix::prelude::*;
 
 use infrastructure::data_source::rabbitmq_data_source::RabbitMQDataSource;
+use infrastructure::data_processor::data_process::PipelineDataProcessor;
 use iot_bee::config::Config;
 
 
+
+
+
 static LOGGER: AppLogger = AppLogger::new("test::actor_system_test");
+
+
+const SCHEMA_MULTI: &str = r#"{
+    "temperatura": {
+        "type": "float",
+        "required": true,
+        "validation": { "min": -50.0, "max": 150.0 },
+        "operation": {
+            "type": "bin_op", "op": "Add",
+            "left": {
+                "type": "bin_op", "op": "Mul",
+                "left":  { "type": "var",  "name": "temperatura" },
+                "right": { "type": "num",  "value": 1.8 }
+            },
+            "right": { "type": "num", "value": 32.0 }
+        }
+    },
+    "humedad": {
+        "type": "float",
+        "required": true,
+        "validation": { "min": 0.0, "max": 100.0 },
+        "operation": {
+            "type": "bin_op", "op": "Mul",
+            "left":  { "type": "var", "name": "humedad" },
+            "right": { "type": "num", "value": 2.0 }
+        }
+    },
+    "presion": {
+        "type": "float",
+        "required": false,
+        "default": 1013.25,
+        "validation": { "min": 800.0, "max": 1200.0 }
+    }
+}"#;
+
 
 #[actix_rt::test]
 #[ignore]
@@ -47,7 +85,7 @@ async fn test_pipeline_lifecycle() {
         Arc::new(tokio::sync::Semaphore::new(0)),
     ));
 
-    let data_processor = Arc::new(DummyDataProcessor);
+    let data_processor = Arc::new(PipelineDataProcessor::new(SCHEMA_MULTI).unwrap());
     
     
     let pipeline_configuration = PipelineConfiguration::new(
@@ -82,7 +120,7 @@ async fn test_pipeline_lifecycle() {
         _ = rx => {
             LOGGER.info("Test finalizado por señal");
         }
-        _ = tokio::time::sleep(std::time::Duration::from_secs(30)) => {
+        _ = tokio::time::sleep(std::time::Duration::from_secs(60)) => {
             LOGGER.info("Timeout de 30 segundos alcanzado");
         }
     }
@@ -111,6 +149,7 @@ impl SpyExternalStore {
 #[async_trait]
 impl DataExternalStore for SpyExternalStore {
     async fn save(&self, data: DataConsumerRawType) -> Result<(), IoTBeeError> {
+       LOGGER.info(&format!("SpyExternalStore received data to save: {:?}", data.value()));
         self.recibidos
             .lock()
             .unwrap()
@@ -121,15 +160,4 @@ impl DataExternalStore for SpyExternalStore {
 }
 
 
-//data processor actor 
-struct DummyDataProcessor;
 
-#[async_trait]
-impl DataProcessorActions for DummyDataProcessor {
-    async fn process_data(
-        &self,
-        _data_to_process: DataConsumerRawType,
-    ) -> Result<DataConsumerRawType, IoTBeeError> {
-        DataConsumerRawType::new("{}")
-    }
-}

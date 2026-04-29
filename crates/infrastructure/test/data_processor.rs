@@ -545,7 +545,7 @@ fn process_operacion_referencia_variable_ausente_en_registro() {
 async fn process_data_json_valido_aplica_operacion() {
     let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
     let dato = DataConsumerRawType::new(r#"{"temperatura": 20.0}"#).unwrap();
-    let resultado = p.process_data(dato).await.unwrap();
+    let resultado = p.process_data(&dato).await.unwrap();
     let json: HashMap<String, f64> = serde_json::from_str(resultado.value()).unwrap();
     assert_eq!(*json.get("temperatura").unwrap(), 40.0);
 }
@@ -554,7 +554,7 @@ async fn process_data_json_valido_aplica_operacion() {
 async fn process_data_resultado_es_data_consumer_raw_type_valido() {
     let p = PipelineDataProcessor::new(SCHEMA_PASSTHROUGH).unwrap();
     let dato = DataConsumerRawType::new(r#"{"humedad": 70.0}"#).unwrap();
-    let resultado = p.process_data(dato).await.unwrap();
+    let resultado = p.process_data(&dato).await.unwrap();
     assert!(serde_json::from_str::<serde_json::Value>(resultado.value()).is_ok());
 }
 
@@ -562,49 +562,49 @@ async fn process_data_resultado_es_data_consumer_raw_type_valido() {
 async fn process_data_json_invalido_falla() {
     let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
     let dato = DataConsumerRawType::new("esto no es json").unwrap();
-    assert!(p.process_data(dato).await.is_err());
+    assert!(p.process_data(&dato).await.is_err());
 }
 
 #[actix_rt::test]
 async fn process_data_json_vacio_falla_si_hay_campos_requeridos() {
     let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
     let dato = DataConsumerRawType::new("{}").unwrap();
-    assert!(p.process_data(dato).await.is_err());
+    assert!(p.process_data(&dato).await.is_err());
 }
 
 #[actix_rt::test]
 async fn process_data_campo_requerido_faltante_falla() {
     let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
     let dato = DataConsumerRawType::new(r#"{"humedad": 50.0}"#).unwrap();
-    assert!(p.process_data(dato).await.is_err());
+    assert!(p.process_data(&dato).await.is_err());
 }
 
 #[actix_rt::test]
 async fn process_data_valor_string_en_campo_numerico_falla() {
     let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
     let dato = DataConsumerRawType::new(r#"{"temperatura": "caliente"}"#).unwrap();
-    assert!(p.process_data(dato).await.is_err());
+    assert!(p.process_data(&dato).await.is_err());
 }
 
 #[actix_rt::test]
 async fn process_data_valor_null_falla() {
     let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
     let dato = DataConsumerRawType::new(r#"{"temperatura": null}"#).unwrap();
-    assert!(p.process_data(dato).await.is_err());
+    assert!(p.process_data(&dato).await.is_err());
 }
 
 #[actix_rt::test]
 async fn process_data_objeto_anidado_falla() {
     let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
     let dato = DataConsumerRawType::new(r#"{"temperatura": {"valor": 20.0}}"#).unwrap();
-    assert!(p.process_data(dato).await.is_err());
+    assert!(p.process_data(&dato).await.is_err());
 }
 
 #[actix_rt::test]
 async fn process_data_array_falla() {
     let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
     let dato = DataConsumerRawType::new(r#"{"temperatura": [20.0, 30.0]}"#).unwrap();
-    assert!(p.process_data(dato).await.is_err());
+    assert!(p.process_data(&dato).await.is_err());
 }
 
 #[actix_rt::test]
@@ -612,7 +612,7 @@ async fn process_data_bool_true_se_convierte_a_uno() {
     let schema = r#"{ "activo": { "type": "bool", "required": true } }"#;
     let p = PipelineDataProcessor::new(schema).unwrap();
     let dato = DataConsumerRawType::new(r#"{"activo": true}"#).unwrap();
-    let resultado = p.process_data(dato).await.unwrap();
+    let resultado = p.process_data(&dato).await.unwrap();
     let json: HashMap<String, f64> = serde_json::from_str(resultado.value()).unwrap();
     assert_eq!(*json.get("activo").unwrap(), 1.0);
 }
@@ -622,7 +622,7 @@ async fn process_data_bool_false_se_convierte_a_cero() {
     let schema = r#"{ "activo": { "type": "bool", "required": true } }"#;
     let p = PipelineDataProcessor::new(schema).unwrap();
     let dato = DataConsumerRawType::new(r#"{"activo": false}"#).unwrap();
-    let resultado = p.process_data(dato).await.unwrap();
+    let resultado = p.process_data(&dato).await.unwrap();
     let json: HashMap<String, f64> = serde_json::from_str(resultado.value()).unwrap();
     assert_eq!(*json.get("activo").unwrap(), 0.0);
 }
@@ -631,7 +631,7 @@ async fn process_data_bool_false_se_convierte_a_cero() {
 async fn process_data_campos_extra_ignorados_resultado_solo_tiene_campos_schema() {
     let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
     let dato = DataConsumerRawType::new(r#"{"temperatura": 10.0, "campo_extra": 999.0}"#).unwrap();
-    let resultado = p.process_data(dato).await.unwrap();
+    let resultado = p.process_data(&dato).await.unwrap();
     let json: HashMap<String, f64> = serde_json::from_str(resultado.value()).unwrap();
     assert!(json.contains_key("temperatura"));
     assert!(!json.contains_key("campo_extra"));
@@ -641,7 +641,7 @@ async fn process_data_campos_extra_ignorados_resultado_solo_tiene_campos_schema(
 async fn process_data_schema_vacio_cualquier_json_produce_objeto_vacio() {
     let p = PipelineDataProcessor::new("{}").unwrap();
     let dato = DataConsumerRawType::new(r#"{"temperatura": 20.0}"#).unwrap();
-    let resultado = p.process_data(dato).await.unwrap();
+    let resultado = p.process_data(&dato).await.unwrap();
     let json: HashMap<String, f64> = serde_json::from_str(resultado.value()).unwrap();
     assert!(json.is_empty());
 }
@@ -658,7 +658,7 @@ async fn process_data_conversion_celsius_fahrenheit_end_to_end() {
 
     for (celsius, fahrenheit_esperado) in casos {
         let dato = DataConsumerRawType::new(format!(r#"{{"temperatura": {celsius}}}"#)).unwrap();
-        let resultado = p.process_data(dato).await.unwrap();
+        let resultado = p.process_data(&dato).await.unwrap();
         let json: HashMap<String, f64> = serde_json::from_str(resultado.value()).unwrap();
         assert!(
             approx(*json.get("temperatura").unwrap(), fahrenheit_esperado),
@@ -774,7 +774,7 @@ async fn process_data_multivariable_json_completo() {
         r#"{"temperatura": 100.0, "humedad": 80.0, "presion": 1000.0}"#
     ).unwrap();
 
-    let resultado = p.process_data(dato).await.unwrap();
+    let resultado = p.process_data(&dato).await.unwrap();
     let json: HashMap<String, f64> = serde_json::from_str(resultado.value()).unwrap();
 
     // 100°C → 212°F
@@ -791,7 +791,7 @@ async fn process_data_multivariable_con_default() {
         r#"{"temperatura": 37.0, "humedad": 55.0}"#
     ).unwrap();
 
-    let resultado = p.process_data(dato).await.unwrap();
+    let resultado = p.process_data(&dato).await.unwrap();
     let json: HashMap<String, f64> = serde_json::from_str(resultado.value()).unwrap();
 
     assert!(approx(*json.get("temperatura").unwrap(), 98.6));
@@ -805,7 +805,7 @@ async fn process_data_multivariable_falla_si_falta_campo_requerido_en_json() {
 
     // solo viene temperatura, falta humedad
     let dato = DataConsumerRawType::new(r#"{"temperatura": 20.0}"#).unwrap();
-    assert!(p.process_data(dato).await.is_err());
+    assert!(p.process_data(&dato).await.is_err());
 }
 
 #[actix_rt::test]
@@ -815,5 +815,5 @@ async fn process_data_multivariable_falla_si_valor_fuera_de_rango() {
     let dato = DataConsumerRawType::new(
         r#"{"temperatura": 20.0, "humedad": 999.0}"#
     ).unwrap();
-    assert!(p.process_data(dato).await.is_err());
+    assert!(p.process_data(&dato).await.is_err());
 }

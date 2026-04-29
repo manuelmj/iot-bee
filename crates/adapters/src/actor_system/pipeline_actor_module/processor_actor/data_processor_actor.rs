@@ -4,6 +4,8 @@ use async_trait::async_trait;
 use super::messages::ProcessDataMessage;
 use crate::actor_system::pipeline_actor_module::general_ports::SendDataToProcessor;
 use crate::actor_system::pipeline_actor_module::general_ports::SendDataToStore;
+
+use domain::outbound::data_processor_actions::DataProcessorActions;
 use domain::entities::data_consumer_types::DataConsumerRawType;
 use domain::error::{IoTBeeError, PipelineLifecycleError};
 use logging::AppLogger;
@@ -15,16 +17,21 @@ static LOGGER: AppLogger = AppLogger::new(
 
 // ── Actor ────────────────────────────────────────────────────────────────────
 type DataStoreThreadSafe = Arc<dyn SendDataToStore + Send + Sync + 'static>;
+type DataProcessorActionsThreadSafe = Arc<dyn DataProcessorActions + Send + Sync + 'static>;
 pub struct DataProcessorActor {
     data_store: DataStoreThreadSafe, // esto debe ser el actor que implementa SendDataToStore
+    data_processor_actions: DataProcessorActionsThreadSafe, // esto debe ser la implementación concreta de DataProcessorActions
 }
 
 impl DataProcessorActor {
-    pub fn new(data_store: DataStoreThreadSafe) -> Self {
-        Self { data_store }
+    pub fn new(data_store: DataStoreThreadSafe, data_processor: DataProcessorActionsThreadSafe) -> Self {
+        Self { data_store, data_processor_actions: data_processor }
     }
     pub fn data_store(&self) -> DataStoreThreadSafe {
         Arc::clone(&self.data_store)
+    }
+    pub fn data_processor_actions(&self) -> DataProcessorActionsThreadSafe {
+        Arc::clone(&self.data_processor_actions)
     }
 }
 
@@ -58,8 +65,9 @@ pub struct ProcessorActorBridge {
 impl ProcessorActorBridge {
     pub fn start_new_processor_actor_with_impl(
         data_store: DataStoreThreadSafe,
+        data_processor: DataProcessorActionsThreadSafe,
     ) -> Arc<dyn SendDataToProcessor + Send + Sync> {
-        let actor = DataProcessorActor::new(Arc::clone(&data_store));
+        let actor = DataProcessorActor::new(data_store, data_processor);
         let addr = Supervisor::start(move |_ctx| actor);
         Arc::new(Self { addr })
     }
