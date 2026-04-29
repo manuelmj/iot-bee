@@ -1,15 +1,17 @@
 //! Tests del módulo data_processor.
 //! Cubre: AST (serialización), Compiler (AST→bytecode), VM (ejecución),
-//!        PipelineDataProcessor::new() + process(), y el trait DataProcessorActions.
+//!        PipelineDataProcessorCore::new() + process(), y el trait DataProcessorActions.
 
 use std::collections::HashMap;
 
 use domain::entities::data_consumer_types::DataConsumerRawType;
 use domain::outbound::data_processor_actions::DataProcessorActions;
-use infrastructure::data_processor::ast::{Expr, Op};
-use infrastructure::data_processor::compiler::{Instruction, Program};
-use infrastructure::data_processor::data_process::PipelineDataProcessor;
-use infrastructure::data_processor::vm::{Vm, VmError};
+use domain::ast::ast::{Expr, Op};
+use domain::ast::compiler::{Instruction, Program};
+use domain::ast::vm::{Vm, VmError};
+// use domain::ast::processor::PipelineDataProcessorCore;
+use infrastructure::data_processor::data_process::PipelineDataProcessorCore;
+
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -358,22 +360,22 @@ fn vm_expresion_profundamente_anidada() {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// PipelineDataProcessor::new() — Construcción y validación del schema
+// PipelineDataProcessorCore::new() — Construcción y validación del schema
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[test]
 fn new_schema_valido_con_operacion() {
-    assert!(PipelineDataProcessor::new(SCHEMA_TEMP).is_ok());
+    assert!(PipelineDataProcessorCore::new(SCHEMA_TEMP).is_ok());
 }
 
 #[test]
 fn new_schema_valido_sin_operacion() {
-    assert!(PipelineDataProcessor::new(SCHEMA_PASSTHROUGH).is_ok());
+    assert!(PipelineDataProcessorCore::new(SCHEMA_PASSTHROUGH).is_ok());
 }
 
 #[test]
 fn new_schema_vacio_es_valido() {
-    assert!(PipelineDataProcessor::new("{}").is_ok());
+    assert!(PipelineDataProcessorCore::new("{}").is_ok());
 }
 
 #[test]
@@ -383,36 +385,36 @@ fn new_schema_multiples_campos() {
         "b": { "type": "int",   "required": true },
         "c": { "type": "bool",  "required": false, "default": 0.0 }
     }"#;
-    assert!(PipelineDataProcessor::new(schema).is_ok());
+    assert!(PipelineDataProcessorCore::new(schema).is_ok());
 }
 
 #[test]
 fn new_json_invalido_falla() {
-    assert!(PipelineDataProcessor::new("esto no es json").is_err());
-    assert!(PipelineDataProcessor::new("").is_err());
-    assert!(PipelineDataProcessor::new("{{}invalid}").is_err());
+    assert!(PipelineDataProcessorCore::new("esto no es json").is_err());
+    assert!(PipelineDataProcessorCore::new("").is_err());
+    assert!(PipelineDataProcessorCore::new("{{}invalid}").is_err());
 }
 
 #[test]
 fn new_campo_sin_required_falla() {
     // `required` es obligatorio en FieldSchema
     let schema = r#"{ "x": { "type": "float" } }"#;
-    assert!(PipelineDataProcessor::new(schema).is_err());
+    assert!(PipelineDataProcessorCore::new(schema).is_err());
 }
 
 #[test]
 fn new_tipo_desconocido_en_campo_falla() {
     let schema = r#"{ "x": { "type": "hexadecimal", "required": true } }"#;
-    assert!(PipelineDataProcessor::new(schema).is_err());
+    assert!(PipelineDataProcessorCore::new(schema).is_err());
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// PipelineDataProcessor::process() — Lógica de procesamiento
+// PipelineDataProcessorCore::process() — Lógica de procesamiento
 // ═════════════════════════════════════════════════════════════════════════════
 
 #[test]
 fn process_aplica_operacion_mul() {
-    let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_TEMP).unwrap();
     let out = p.process(&record(&[("temperatura", 20.0)])).unwrap();
     assert_eq!(*out.get("temperatura").unwrap(), 40.0); // 20 * 2
 }
@@ -420,7 +422,7 @@ fn process_aplica_operacion_mul() {
 #[test]
 fn process_operacion_anidada_celsius_a_fahrenheit() {
     // 0°C → 32°F  (0 * 1.8 + 32 = 32)
-    let p = PipelineDataProcessor::new(SCHEMA_CELSIUS_A_FAHRENHEIT).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_CELSIUS_A_FAHRENHEIT).unwrap();
     let out = p.process(&record(&[("temperatura", 0.0)])).unwrap();
     assert!(approx(*out.get("temperatura").unwrap(), 32.0));
 
@@ -431,46 +433,46 @@ fn process_operacion_anidada_celsius_a_fahrenheit() {
 
 #[test]
 fn process_passthrough_sin_operacion() {
-    let p = PipelineDataProcessor::new(SCHEMA_PASSTHROUGH).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_PASSTHROUGH).unwrap();
     let out = p.process(&record(&[("humedad", 65.0)])).unwrap();
     assert_eq!(*out.get("humedad").unwrap(), 65.0);
 }
 
 #[test]
 fn process_campo_requerido_ausente_es_error() {
-    let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_TEMP).unwrap();
     assert!(p.process(&record(&[])).is_err());
 }
 
 #[test]
 fn process_campo_opcional_ausente_usa_default() {
-    let p = PipelineDataProcessor::new(SCHEMA_DEFAULT).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_DEFAULT).unwrap();
     let out = p.process(&record(&[])).unwrap();
     assert_eq!(*out.get("presion").unwrap(), 1013.25);
 }
 
 #[test]
 fn process_campo_opcional_presente_usa_valor_dado() {
-    let p = PipelineDataProcessor::new(SCHEMA_DEFAULT).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_DEFAULT).unwrap();
     let out = p.process(&record(&[("presion", 900.0)])).unwrap();
     assert_eq!(*out.get("presion").unwrap(), 900.0);
 }
 
 #[test]
 fn process_validacion_min_rechaza_valor_bajo() {
-    let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_TEMP).unwrap();
     assert!(p.process(&record(&[("temperatura", -100.0)])).is_err());
 }
 
 #[test]
 fn process_validacion_max_rechaza_valor_alto() {
-    let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_TEMP).unwrap();
     assert!(p.process(&record(&[("temperatura", 200.0)])).is_err());
 }
 
 #[test]
 fn process_validacion_en_limite_exacto_es_valido() {
-    let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_TEMP).unwrap();
     assert!(p.process(&record(&[("temperatura", -50.0)])).is_ok());
     assert!(p.process(&record(&[("temperatura", 150.0)])).is_ok());
 }
@@ -478,7 +480,7 @@ fn process_validacion_en_limite_exacto_es_valido() {
 #[test]
 fn process_campos_extra_en_registro_son_ignorados() {
     // El schema solo define "temperatura"; "presion" no existe en el schema.
-    let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_TEMP).unwrap();
     let out = p.process(&record(&[("temperatura", 10.0), ("presion", 9999.0)])).unwrap();
     assert!(out.contains_key("temperatura"));
     assert!(!out.contains_key("presion"));
@@ -486,7 +488,7 @@ fn process_campos_extra_en_registro_son_ignorados() {
 
 #[test]
 fn process_schema_vacio_siempre_produce_salida_vacia() {
-    let p = PipelineDataProcessor::new("{}").unwrap();
+    let p = PipelineDataProcessorCore::new("{}").unwrap();
     let out = p.process(&record(&[("cualquier", 42.0), ("otro", 1.0)])).unwrap();
     assert!(out.is_empty());
 }
@@ -504,7 +506,7 @@ fn process_multiples_campos_procesados_independientemente() {
         },
         "b": { "type": "float", "required": true }
     }"#;
-    let p = PipelineDataProcessor::new(schema).unwrap();
+    let p = PipelineDataProcessorCore::new(schema).unwrap();
     let out = p.process(&record(&[("a", 5.0), ("b", 3.0)])).unwrap();
     assert_eq!(*out.get("a").unwrap(), 15.0);
     assert_eq!(*out.get("b").unwrap(), 3.0);
@@ -512,7 +514,7 @@ fn process_multiples_campos_procesados_independientemente() {
 
 #[test]
 fn process_reutilizable_multiples_llamadas() {
-    let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_TEMP).unwrap();
     assert_eq!(*p.process(&record(&[("temperatura",  0.0)])).unwrap().get("temperatura").unwrap(),  0.0);
     assert_eq!(*p.process(&record(&[("temperatura", 10.0)])).unwrap().get("temperatura").unwrap(), 20.0);
     assert_eq!(*p.process(&record(&[("temperatura", 25.0)])).unwrap().get("temperatura").unwrap(), 50.0);
@@ -532,7 +534,7 @@ fn process_operacion_referencia_variable_ausente_en_registro() {
             }
         }
     }"#;
-    let p = PipelineDataProcessor::new(schema).unwrap();
+    let p = PipelineDataProcessorCore::new(schema).unwrap();
     // "temperatura" no está en el registro, pero sí se usa en la operación
     assert!(p.process(&record(&[])).is_err());
 }
@@ -543,7 +545,7 @@ fn process_operacion_referencia_variable_ausente_en_registro() {
 
 #[actix_rt::test]
 async fn process_data_json_valido_aplica_operacion() {
-    let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_TEMP).unwrap();
     let dato = DataConsumerRawType::new(r#"{"temperatura": 20.0}"#).unwrap();
     let resultado = p.process_data(&dato).await.unwrap();
     let json: HashMap<String, f64> = serde_json::from_str(resultado.value()).unwrap();
@@ -552,7 +554,7 @@ async fn process_data_json_valido_aplica_operacion() {
 
 #[actix_rt::test]
 async fn process_data_resultado_es_data_consumer_raw_type_valido() {
-    let p = PipelineDataProcessor::new(SCHEMA_PASSTHROUGH).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_PASSTHROUGH).unwrap();
     let dato = DataConsumerRawType::new(r#"{"humedad": 70.0}"#).unwrap();
     let resultado = p.process_data(&dato).await.unwrap();
     assert!(serde_json::from_str::<serde_json::Value>(resultado.value()).is_ok());
@@ -560,49 +562,49 @@ async fn process_data_resultado_es_data_consumer_raw_type_valido() {
 
 #[actix_rt::test]
 async fn process_data_json_invalido_falla() {
-    let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_TEMP).unwrap();
     let dato = DataConsumerRawType::new("esto no es json").unwrap();
     assert!(p.process_data(&dato).await.is_err());
 }
 
 #[actix_rt::test]
 async fn process_data_json_vacio_falla_si_hay_campos_requeridos() {
-    let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_TEMP).unwrap();
     let dato = DataConsumerRawType::new("{}").unwrap();
     assert!(p.process_data(&dato).await.is_err());
 }
 
 #[actix_rt::test]
 async fn process_data_campo_requerido_faltante_falla() {
-    let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_TEMP).unwrap();
     let dato = DataConsumerRawType::new(r#"{"humedad": 50.0}"#).unwrap();
     assert!(p.process_data(&dato).await.is_err());
 }
 
 #[actix_rt::test]
 async fn process_data_valor_string_en_campo_numerico_falla() {
-    let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_TEMP).unwrap();
     let dato = DataConsumerRawType::new(r#"{"temperatura": "caliente"}"#).unwrap();
     assert!(p.process_data(&dato).await.is_err());
 }
 
 #[actix_rt::test]
 async fn process_data_valor_null_falla() {
-    let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_TEMP).unwrap();
     let dato = DataConsumerRawType::new(r#"{"temperatura": null}"#).unwrap();
     assert!(p.process_data(&dato).await.is_err());
 }
 
 #[actix_rt::test]
 async fn process_data_objeto_anidado_falla() {
-    let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_TEMP).unwrap();
     let dato = DataConsumerRawType::new(r#"{"temperatura": {"valor": 20.0}}"#).unwrap();
     assert!(p.process_data(&dato).await.is_err());
 }
 
 #[actix_rt::test]
 async fn process_data_array_falla() {
-    let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_TEMP).unwrap();
     let dato = DataConsumerRawType::new(r#"{"temperatura": [20.0, 30.0]}"#).unwrap();
     assert!(p.process_data(&dato).await.is_err());
 }
@@ -610,7 +612,7 @@ async fn process_data_array_falla() {
 #[actix_rt::test]
 async fn process_data_bool_true_se_convierte_a_uno() {
     let schema = r#"{ "activo": { "type": "bool", "required": true } }"#;
-    let p = PipelineDataProcessor::new(schema).unwrap();
+    let p = PipelineDataProcessorCore::new(schema).unwrap();
     let dato = DataConsumerRawType::new(r#"{"activo": true}"#).unwrap();
     let resultado = p.process_data(&dato).await.unwrap();
     let json: HashMap<String, f64> = serde_json::from_str(resultado.value()).unwrap();
@@ -620,7 +622,7 @@ async fn process_data_bool_true_se_convierte_a_uno() {
 #[actix_rt::test]
 async fn process_data_bool_false_se_convierte_a_cero() {
     let schema = r#"{ "activo": { "type": "bool", "required": true } }"#;
-    let p = PipelineDataProcessor::new(schema).unwrap();
+    let p = PipelineDataProcessorCore::new(schema).unwrap();
     let dato = DataConsumerRawType::new(r#"{"activo": false}"#).unwrap();
     let resultado = p.process_data(&dato).await.unwrap();
     let json: HashMap<String, f64> = serde_json::from_str(resultado.value()).unwrap();
@@ -629,7 +631,7 @@ async fn process_data_bool_false_se_convierte_a_cero() {
 
 #[actix_rt::test]
 async fn process_data_campos_extra_ignorados_resultado_solo_tiene_campos_schema() {
-    let p = PipelineDataProcessor::new(SCHEMA_TEMP).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_TEMP).unwrap();
     let dato = DataConsumerRawType::new(r#"{"temperatura": 10.0, "campo_extra": 999.0}"#).unwrap();
     let resultado = p.process_data(&dato).await.unwrap();
     let json: HashMap<String, f64> = serde_json::from_str(resultado.value()).unwrap();
@@ -639,7 +641,7 @@ async fn process_data_campos_extra_ignorados_resultado_solo_tiene_campos_schema(
 
 #[actix_rt::test]
 async fn process_data_schema_vacio_cualquier_json_produce_objeto_vacio() {
-    let p = PipelineDataProcessor::new("{}").unwrap();
+    let p = PipelineDataProcessorCore::new("{}").unwrap();
     let dato = DataConsumerRawType::new(r#"{"temperatura": 20.0}"#).unwrap();
     let resultado = p.process_data(&dato).await.unwrap();
     let json: HashMap<String, f64> = serde_json::from_str(resultado.value()).unwrap();
@@ -648,7 +650,7 @@ async fn process_data_schema_vacio_cualquier_json_produce_objeto_vacio() {
 
 #[actix_rt::test]
 async fn process_data_conversion_celsius_fahrenheit_end_to_end() {
-    let p = PipelineDataProcessor::new(SCHEMA_CELSIUS_A_FAHRENHEIT).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_CELSIUS_A_FAHRENHEIT).unwrap();
 
     let casos = [
         (  0.0,  32.0),  // punto de congelación
@@ -707,7 +709,7 @@ const SCHEMA_MULTI: &str = r#"{
 
 #[test]
 fn process_multivariable_resultado_contiene_todos_los_campos_del_schema() {
-    let p = PipelineDataProcessor::new(SCHEMA_MULTI).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_MULTI).unwrap();
     let out = p.process(&record(&[
         ("temperatura", 25.0),
         ("humedad",     60.0),
@@ -721,7 +723,7 @@ fn process_multivariable_resultado_contiene_todos_los_campos_del_schema() {
 
 #[test]
 fn process_multivariable_cada_campo_se_procesa_independientemente() {
-    let p = PipelineDataProcessor::new(SCHEMA_MULTI).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_MULTI).unwrap();
     let out = p.process(&record(&[
         ("temperatura", 0.0),   // 0 * 1.8 + 32 = 32
         ("humedad",    65.0),   // con operación ×2 → 130
@@ -736,7 +738,7 @@ fn process_multivariable_cada_campo_se_procesa_independientemente() {
 #[test]
 fn process_multivariable_campo_opcional_ausente_usa_default() {
     // "presion" no viene en el registro → debe usar 1013.25
-    let p = PipelineDataProcessor::new(SCHEMA_MULTI).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_MULTI).unwrap();
     let out = p.process(&record(&[
         ("temperatura", 20.0),
         ("humedad",     50.0),
@@ -747,7 +749,7 @@ fn process_multivariable_campo_opcional_ausente_usa_default() {
 
 #[test]
 fn process_multivariable_falla_si_falta_cualquier_campo_requerido() {
-    let p = PipelineDataProcessor::new(SCHEMA_MULTI).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_MULTI).unwrap();
 
     // falta temperatura
     assert!(p.process(&record(&[("humedad", 50.0), ("presion", 1000.0)])).is_err());
@@ -757,7 +759,7 @@ fn process_multivariable_falla_si_falta_cualquier_campo_requerido() {
 
 #[test]
 fn process_multivariable_validacion_falla_en_cualquier_campo() {
-    let p = PipelineDataProcessor::new(SCHEMA_MULTI).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_MULTI).unwrap();
 
     // temperatura fuera de rango
     assert!(p.process(&record(&[("temperatura", 200.0), ("humedad", 50.0)])).is_err());
@@ -769,7 +771,7 @@ fn process_multivariable_validacion_falla_en_cualquier_campo() {
 
 #[actix_rt::test]
 async fn process_data_multivariable_json_completo() {
-    let p = PipelineDataProcessor::new(SCHEMA_MULTI).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_MULTI).unwrap();
     let dato = DataConsumerRawType::new(
         r#"{"temperatura": 100.0, "humedad": 80.0, "presion": 1000.0}"#
     ).unwrap();
@@ -786,7 +788,7 @@ async fn process_data_multivariable_json_completo() {
 #[actix_rt::test]
 async fn process_data_multivariable_con_default() {
     // presion ausente en el JSON → default 1013.25
-    let p = PipelineDataProcessor::new(SCHEMA_MULTI).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_MULTI).unwrap();
     let dato = DataConsumerRawType::new(
         r#"{"temperatura": 37.0, "humedad": 55.0}"#
     ).unwrap();
@@ -801,7 +803,7 @@ async fn process_data_multivariable_con_default() {
 
 #[actix_rt::test]
 async fn process_data_multivariable_falla_si_falta_campo_requerido_en_json() {
-    let p = PipelineDataProcessor::new(SCHEMA_MULTI).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_MULTI).unwrap();
 
     // solo viene temperatura, falta humedad
     let dato = DataConsumerRawType::new(r#"{"temperatura": 20.0}"#).unwrap();
@@ -810,7 +812,7 @@ async fn process_data_multivariable_falla_si_falta_campo_requerido_en_json() {
 
 #[actix_rt::test]
 async fn process_data_multivariable_falla_si_valor_fuera_de_rango() {
-    let p = PipelineDataProcessor::new(SCHEMA_MULTI).unwrap();
+    let p = PipelineDataProcessorCore::new(SCHEMA_MULTI).unwrap();
 
     let dato = DataConsumerRawType::new(
         r#"{"temperatura": 20.0, "humedad": 999.0}"#

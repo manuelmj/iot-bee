@@ -5,6 +5,7 @@ use domain::entities::validation_schema::{
 };
 
 use domain::error::PipelinePersistenceError;
+use domain::pipeline_schema::schemas::PipelineSchemaMap;
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 use utoipa::ToSchema;
@@ -18,41 +19,21 @@ pub struct CreateValidationSchemaRequest {
     #[serde(rename = "name")]
     #[validate(length(min = 1, max = 32))]
     pub name: String,
+
     #[serde(rename = "schema")]
-    pub json_schema:String,
+    #[validate(custom = "validate_json_schema")]
+    pub json_schema: String,
 }
 
-impl CreateValidationSchemaRequest {
-    pub fn validate_values(&self) -> Result<(), PipelinePersistenceError> {
-        self.validate()
-            .map_err(|e| PipelinePersistenceError::InvalidData {
-                reason: e.to_string(),
-            })?;
-
-        Ok(())
-    }
+fn validate_json_schema(json_str: &str) -> Result<(), validator::ValidationError> {
+    serde_json::from_str::<PipelineSchemaMap>(json_str)
+        .map_err(|e| {
+            let mut err = validator::ValidationError::new("invalid_json_schema");
+            err.message = Some(std::borrow::Cow::Owned(format!("Invalid JSON schema: {}", e)));
+            err
+        })?;
+    Ok(())
 }
-
- 
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "lowercase")]
-pub enum FieldType {
-    Float,
-    Int,
-    Bool,
-}
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct ValidationRule {
-    pub min: Option<f64>,
-    pub max: Option<f64>,
-}
-
-
-
-
-
 
 //=====================
 

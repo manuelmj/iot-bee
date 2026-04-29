@@ -3,6 +3,7 @@ use super::ast::Expr;
 
 // La definición de un campo
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag="type",rename_all = "snake_case")]
 pub struct FieldSchema {
     // "type" es palabra reservada en Rust, así que
     // le damos un nombre interno distinto y le decimos
@@ -22,8 +23,9 @@ pub struct FieldSchema {
     pub operation: Option<Expr>,
 }
 
+
 #[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum FieldType {
     Float,
     Int,

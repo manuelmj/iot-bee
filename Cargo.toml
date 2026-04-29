@@ -23,6 +23,7 @@ toml = "1.1.2"
 
 # Validation
 validator = { version = "0.20.0", features = ["derive"] }
+schemars = { version = "0.8.22"} 
 
 # Documentation
 utoipa = { version = "5", features = ["actix_extras", "chrono"] }
